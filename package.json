@@ -1,32 +1,29 @@
 {
   "name": "trip_disk",
-  "private": true,
-  "version": "0.0.0",
   "type": "module",
+  "version": "0.1.0",
+  "private": true,
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
     "preview": "vite preview",
-    "prepare": "husky"
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "bunx tsc --noEmit"
   },
   "dependencies": {
-    "vue": "^3.5.24"
+    "vue": "^3.5.26"
   },
   "devDependencies": {
-    "@types/node": "^24.10.1",
-    "@typescript-eslint/eslint-plugin": "^8.52.0",
-    "@typescript-eslint/parser": "^8.52.0",
-    "@vitejs/plugin-vue": "^6.0.1",
+    "@antfu/eslint-config": "^6.7.3",
+    "@types/node": "^22.10.5",
+    "@vitejs/plugin-vue": "^5.2.1",
     "@vue/tsconfig": "^0.8.1",
-    "eslint": "^8.57.0",
-    "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-prettier": "^5.5.4",
+    "eslint-plugin-format": "^1.2.0",
+    "eslint-plugin-prettier-vue": "^5.0.0",
     "eslint-plugin-vue": "^10.6.2",
-    "husky": "^9.1.7",
-    "prettier": "^3.7.4",
-    "typescript": "~5.9.3",
-    "typescript-eslint": "^8.52.0",
-    "vite": "^7.2.4",
-    "vue-tsc": "^3.1.4"
+    "typescript": "~5.6.3",
+    "vite": "^5.4.12",
+    "vue-tsc": "^2.2.8"
   }
 }

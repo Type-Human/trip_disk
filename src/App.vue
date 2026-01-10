@@ -1,8 +1,7 @@
 <template>
-  <div>test</div>
+  <div>
+    <h1>
+      Старт проекта
+    </h1>
+  </div>
 </template>
-
-<script setup>
-const message = "hello";
-console.log(message);
-</script>
