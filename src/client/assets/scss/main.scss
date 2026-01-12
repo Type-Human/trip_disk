@@ -1,0 +1,17 @@
+@use 'abstract/variables' as vars;
+
+@forward 'abstract/variables';
+@forward 'abstract/themes';
+@forward 'abstract/mixins';
+
+@use 'fonts/fonts';
+@use 'base/global';
+
+
+:root {
+    font-family: vars.$font-family;
+}
+
+.container {
+    max-width: vars.$container-width;
+}

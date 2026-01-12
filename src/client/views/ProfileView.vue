@@ -3,7 +3,7 @@
 </script>
 
 <template>
-  <div class="profile">
+  <div class="profile container">
     <h1>Профиль пользователя</h1>
     <p>Здесь будет информация о профиле</p>
   </div>

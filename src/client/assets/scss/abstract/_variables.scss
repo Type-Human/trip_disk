@@ -1,4 +1,7 @@
 
+$font-family: 'Roboto', sans-serif;
+$font-family-base: $font-family;
+
 $color-primary: #3b82f6;    
 $color-primary-light: #60a5fa;
 $color-primary-dark: #1d4ed8;
@@ -51,3 +54,6 @@ $font-size-xl: 1.5rem;
 
 $transition-fast: 0.15s ease;
 $transition-base: 0.3s ease;
+
+
+$container-width: 1440px

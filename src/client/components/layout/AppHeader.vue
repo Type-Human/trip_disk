@@ -4,8 +4,8 @@
 
 <template>
   <header class="app-header">
-    <div class="header-container">
-      <div class="logo">
+    <div class="header-container container">
+      <div class="logo-container">
         <img class="logo" src="/img/logo/disk-logo.png" alt="">
       </div>
       <nav class="nav">
@@ -29,9 +29,9 @@
 <style scoped lang="scss">
 .app-header {
   background-color: var(--color-bg-secondary);
-  border-bottom: 1px solid var(--color-border);
-  padding: 0.5rem 0;
+  padding: 16px 0;
   position: sticky;
+  margin-bottom: 24px;
   top: 0;
   z-index: 100;
   backdrop-filter: blur(10px);
@@ -42,14 +42,21 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  max-width: 1200px;
   margin: 0 auto;
-  padding: 0 1.5rem;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.logo-container {
+  height: 100%;
+  display: flex;
+  align-items: center;
 }
 
 .logo {
+  height: 100%;
   width: 70px;
-  object-fit: fill;
+  object-fit: contain;
 }
 
 .nav {
