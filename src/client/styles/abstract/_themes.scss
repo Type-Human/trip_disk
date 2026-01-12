@@ -1,0 +1,50 @@
+@use 'variables' as *;
+
+
+:root {
+  --color-bg: #{$color-white};
+  --color-bg-secondary: #{$color-gray-light};
+  --color-bg-card: #{$color-white};
+  
+
+  --color-text: #{$color-gray-darker};
+  --color-text-secondary: #{$color-gray-dark};
+  --color-text-muted: #{$color-gray};
+  
+
+  --color-border: #e5e7eb;
+  --color-border-hover: #{$color-primary-light};
+  
+
+  --color-accent: #{$color-primary};
+  --color-accent-hover: #{$color-primary-dark};
+  --color-success: #{$color-success};
+  --color-warning: #{$color-warning};
+  --color-error: #{$color-error};
+  
+
+  --shadow-card: #{$shadow-md};
+  --shadow-button: #{$shadow-sm};
+  
+
+  --transition: #{$transition-base};
+}
+
+
+[data-theme="dark"] {
+  --color-bg: #0f172a;
+  --color-bg-secondary: #1e293b;
+  --color-bg-card: #334155;
+  --color-text: #f1f5f9;
+  --color-text-secondary: #cbd5e1;
+  --color-text-muted: #94a3b8;
+  --color-border: #475569;
+  --color-border-hover: #{$color-dark-accent};
+  --color-accent: #{$color-dark-accent};
+  --color-accent-hover: #{$color-accent};
+  --color-success: #{$color-dark-success};
+  --color-warning: #{$color-dark-warning};
+  --color-error: #{$color-dark-error};
+  --shadow-card: 0 4px 6px rgba(0, 0, 0, 0.3);
+  --shadow-button: 0 2px 4px rgba(0, 0, 0, 0.4);
+}

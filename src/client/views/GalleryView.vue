@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import MediaUploader from '../gallery/MediaUploader.vue'
+import MediaUploader from '../components/gallery/MediaUploader.vue'
 </script>
 
 <template>

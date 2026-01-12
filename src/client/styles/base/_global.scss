@@ -1,0 +1,72 @@
+@use '../abstract/variables' as *;
+@use '../abstract/themes' as *;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: $font-family;
+  font-size: $font-size-base;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  transition: background-color $transition-base, color $transition-base;
+  line-height: 1.5;
+}
+
+// Утилитарные классы
+.bg-primary {
+  background-color: var(--color-bg);
+}
+
+.bg-secondary {
+  background-color: var(--color-bg-secondary);
+}
+
+.text-primary {
+  color: var(--color-text);
+}
+
+.text-secondary {
+  color: var(--color-text-secondary);
+}
+
+.text-accent {
+  color: var(--color-accent);
+}
+
+.card {
+  background-color: var(--color-bg-card);
+  border-radius: $border-radius;
+  box-shadow: var(--shadow-card);
+  padding: $spacing-md;
+  border: 1px solid var(--color-border);
+}
+
+.button {
+  background-color: var(--color-accent);
+  color: $color-white;
+  border: none;
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $border-radius;
+  cursor: pointer;
+  transition: all var(--transition);
+  box-shadow: var(--shadow-button);
+  
+  &:hover {
+    background-color: var(--color-accent-hover);
+    transform: translateY(-2px);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 $spacing-md;
+}
