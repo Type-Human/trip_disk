@@ -10,9 +10,9 @@
         <router-link to="/" class="nav-link" active-class="active">
           Главная
         </router-link>
-        <router-link to="/trips" class="nav-link" active-class="active">
+        <!-- <router-link to="/trips" class="nav-link" active-class="active">
           Поездки
-        </router-link>
+        </router-link> -->
         <router-link to="/gallery" class="nav-link" active-class="active">
           Галерея
         </router-link>
@@ -27,7 +27,6 @@
 <style scoped lang="scss">
 .app-header {
   padding: 16px 0;
-  position: sticky;
   top: 0;
   z-index: 100;
 }

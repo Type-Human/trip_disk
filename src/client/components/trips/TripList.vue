@@ -1,9 +1,14 @@
 <script setup lang="ts">
+import { computed, onMounted } from 'vue'
 import { useTripStore } from '../../stores/tripStore'
 import TripCard from './TripCard.vue'
 
 const tripStore = useTripStore()
-const trips = tripStore.trips
+const trips = computed(() => tripStore.trips)
+
+onMounted(() => {
+  tripStore.fetchTrips()
+})
 </script>
 
 <template>
