@@ -50,7 +50,6 @@ export const useTripStore = defineStore('trip', {
   },
 
   getters: {
-
     tripsCount: state => state.trips.length,
 
     hasTrips: state => state.trips.length > 0,

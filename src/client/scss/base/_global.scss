@@ -68,5 +68,8 @@ body {
 .container {
   max-width: $container-width;
   margin: 0 auto;
-  padding: 0 $spacing-md;
+   &--small{
+    max-width: $container-width-small;
+    margin: 0 auto;
+   }
 }
