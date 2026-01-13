@@ -1,4 +1,4 @@
-@use 'abstract/variables' as vars;
+
 
 @forward 'abstract/variables';
 @forward 'abstract/themes';
@@ -9,9 +9,6 @@
 
 
 :root {
-    font-family: vars.$font-family;
+    font-family: $font-family;
 }
 
-.container {
-    max-width: vars.$container-width;
-}

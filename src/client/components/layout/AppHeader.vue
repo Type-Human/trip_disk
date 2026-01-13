@@ -1,6 +1,4 @@
-<script setup lang="ts">
-
-</script>
+<script setup lang="ts"></script>
 
 <template>
   <header class="app-header">
@@ -28,14 +26,11 @@
 
 <style scoped lang="scss">
 .app-header {
-  background-color: var(--color-bg-secondary);
   padding: 16px 0;
   position: sticky;
   margin-bottom: 24px;
   top: 0;
   z-index: 100;
-  backdrop-filter: blur(10px);
-  background-color: rgba(var(--color-bg-secondary-rgb), 0.8);
 }
 
 .header-container {
@@ -65,11 +60,11 @@
   align-items: center;
 
   .nav-link {
-    color: var(--color-text-secondary);
+    color: var(--color-gray-darker);
     text-decoration: none;
-    font-weight: 500;
-    font-size: 1rem;
-    padding: 0.5rem 0;
+    font-weight: $font-weight-bold;
+    font-size: $font-size-base;
+    padding: 8px 0;
     position: relative;
     transition: color 0.3s ease;
 

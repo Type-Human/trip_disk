@@ -1,0 +1,64 @@
+$font-family: 'Roboto', sans-serif;
+$font-family-base: $font-family;
+
+
+$font-weight-light: 300;
+$font-weight-regular: 400;
+$font-weight-medium: 500;
+$font-weight-bold: 700;
+
+
+$font-size-xs: 12px;
+$font-size-sm: 14px;
+$font-size-base: 16px;
+$font-size-lg: 18px;
+$font-size-xl: 24px;
+$font-size-2xl: 32px;
+
+
+$color-primary: #3b82f6;
+$color-primary-light: #60a5fa;
+$color-primary-dark: #1d4ed8;
+$color-bg-secondary-rgb: 243, 244, 246;
+
+$color-gray-light: #f3f4f6;
+$color-gray: #9ca3af;
+$color-gray-dark: #4b5563;
+$color-gray-darker: #1f2937;
+
+$color-success: #10b981;
+$color-warning: #f59e0b;
+$color-error: #ef4444;
+$color-info: #0ea5e9;
+
+$color-dark-accent: #a78bfa;
+$color-dark-success: #34d399;
+$color-dark-warning: #fbbf24;
+$color-dark-error: #f87171;
+$color-dark-info: #38bdf8;
+
+$color-white: #ffffff;
+$color-black: #000000;
+
+
+$spacing-xs: 8px;
+$spacing-sm: 16px;
+$spacing-md: 24px;
+$spacing-lg: 32px;
+$spacing-xl: 48px;
+
+
+$border-radius: 8px;
+$border-radius-lg: 16px;
+
+
+$shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+$shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+$shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.15);
+
+
+$transition-fast: 0.15s ease;
+$transition-base: 0.3s ease;
+
+
+$container-width: 1440px;
