@@ -4,6 +4,5 @@ export interface Trip {
   description: string
   date: string
   location: string
-  images: string[]
-
+  image: string
 }

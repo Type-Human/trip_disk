@@ -1,0 +1,18 @@
+[
+  {
+    "id": "1",
+    "title": "Поездка в Сочи",
+    "description": "Отдых на море",
+    "date": "2024-06-15",
+    "location": "Сочи",
+    "image": "/img/trips/sochi.jpg"
+  },
+  {
+    "id": "2",
+    "title": "Горнолыжный курорт",
+    "description": "Катание на лыжах",
+    "date": "2024-12-20",
+    "location": "Красная Поляна",
+    "image": "/img/trips/ski.jpg"
+  }
+]

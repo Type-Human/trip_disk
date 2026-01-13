@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { Trip } from '../../types/trip'
 import { useTripStore } from '../../stores/tripStore'
 import TripCard from './TripCard.vue'
 

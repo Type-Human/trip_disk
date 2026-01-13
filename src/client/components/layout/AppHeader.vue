@@ -28,7 +28,6 @@
 .app-header {
   padding: 16px 0;
   position: sticky;
-  margin-bottom: 24px;
   top: 0;
   z-index: 100;
 }
@@ -74,17 +73,6 @@
 
     &.active {
       color: var(--color-accent);
-
-      &::after {
-        content: '';
-        position: absolute;
-        bottom: -2px;
-        left: 0;
-        right: 0;
-        height: 2px;
-        background-color: var(--color-accent);
-        border-radius: 1px;
-      }
     }
   }
 }
