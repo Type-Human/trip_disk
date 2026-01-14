@@ -34,6 +34,7 @@ defineProps<{
   width: 100%;
   background: white;
   border-radius: 12px;
+
   cursor: pointer;
   overflow: hidden;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
@@ -51,7 +52,10 @@ defineProps<{
 .trip-photo {
   width: 100%;
   height: 250px;
+  border-radius: 16px;
   overflow: hidden;
+  opacity: 0.8;
+  transition: opacity 0.3s ease;
 
   img {
     width: 100%;
@@ -59,9 +63,13 @@ defineProps<{
     object-fit: cover;
     display: block;
     transition: transform 0.3s ease;
+  }
 
-    .trip-card:hover & {
-      transform: scale(1.05);
+  .trip-card:hover & {
+    opacity: 1;
+
+    img {
+      transform: scale(1.02);
     }
   }
 }
@@ -124,7 +132,7 @@ defineProps<{
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    background: #4299e1;
+    background: var(--color-accent);
     color: white;
     border: none;
     display: flex;

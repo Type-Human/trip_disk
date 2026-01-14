@@ -4,20 +4,19 @@
   <header class="app-header">
     <div class="header-container container">
       <div class="logo-container">
-        <img class="logo" src="/img/logo/disk-logo.png" alt="">
+        <router-link to="/" class="nav-link" active-class="active">
+          <img class="logo" src="/img/logo/disk-logo.png" alt="">
+        </router-link>
       </div>
       <nav class="nav">
-        <router-link to="/" class="nav-link" active-class="active">
-          Главная
-        </router-link>
         <!-- <router-link to="/trips" class="nav-link" active-class="active">
           Поездки
         </router-link> -->
-        <router-link to="/gallery" class="nav-link" active-class="active">
-          Галерея
-        </router-link>
-        <router-link to="/profile" class="nav-link" active-class="active">
-          Профиль
+        <!-- <router-link to="/gallery" class="nav-link" active-class="active">
+          Создать
+        </router-link> -->
+        <router-link to="" class="nav-link" active-class="active">
+          <img src="/img/logo/profile-icon.svg" alt="" style="width: 30px;">
         </router-link>
       </nav>
     </div>
@@ -62,9 +61,9 @@
     text-decoration: none;
     font-weight: $font-weight-bold;
     font-size: $font-size-base;
-    padding: 8px 0;
     position: relative;
     transition: color 0.3s ease;
+    height: 30px;
 
     &:hover {
       color: var(--color-text);
