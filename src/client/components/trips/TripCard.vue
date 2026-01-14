@@ -4,6 +4,15 @@ import type { Trip } from '../../types/trip'
 defineProps<{
   trip: Trip
 }>()
+
+function formatDate(dateString: string): string {
+  const date = new Date(dateString)
+  return date.toLocaleDateString('ru-RU', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+}
 </script>
 
 <template>
@@ -20,7 +29,10 @@ defineProps<{
       <p>{{ trip.description }}</p>
 
       <div class="trip-bottom">
-        <span class="trip-location">📍 {{ trip.location || 'Не указано' }}</span>
+        <div class="trip-details">
+          <span class="trip-date">📅 {{ formatDate(trip.date) }}</span>
+          <span class="trip-location">📍 {{ trip.location || 'Не указано' }}</span>
+        </div>
         <button class="trip-more-btn">
           →
         </button>
@@ -34,18 +46,19 @@ defineProps<{
   width: 100%;
   background: white;
   border-radius: 12px;
-
   cursor: pointer;
   overflow: hidden;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
   transition: all 0.25s ease;
   margin-bottom: $spacing-lg;
   display: flex;
+  opacity: 0.9;
   flex-direction: column;
 
   &:hover {
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
     transform: translateY(-3px);
+    opacity: 1;
   }
 }
 
@@ -54,7 +67,6 @@ defineProps<{
   height: 250px;
   border-radius: 16px;
   overflow: hidden;
-  opacity: 0.8;
   transition: opacity 0.3s ease;
 
   img {
@@ -118,34 +130,46 @@ defineProps<{
 .trip-bottom {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-end;
   padding-top: 16px;
   border-top: 1px solid #e2e8f0;
+}
 
-  .trip-location {
-    color: #718096;
-    font-size: 14px;
+.trip-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  .trip-date {
+    color: #4a5568;
+    font-size: 13px;
     font-weight: 500;
   }
 
-  .trip-more-btn {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: var(--color-accent);
-    color: white;
-    border: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    font-size: 18px;
-    transition: all 0.2s ease;
+  .trip-location {
+    color: #718096;
+    font-size: 13px;
+    font-weight: 500;
+  }
+}
 
-    &:hover {
-      background: #3182ce;
-      transform: translateX(3px);
-    }
+.trip-more-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: white;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 18px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #3182ce;
+    transform: translateX(3px);
   }
 }
 </style>

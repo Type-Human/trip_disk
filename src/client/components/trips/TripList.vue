@@ -12,7 +12,5 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="trip-list container">
-    <TripCard v-for="trip in trips" :key="trip.id" :trip="trip" />
-  </div>
+  <TripCard v-for="trip in trips" :key="trip.id" :trip="trip" />
 </template>

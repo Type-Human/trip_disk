@@ -1,5 +1,5 @@
-@use '../abstract/variables' as *;
-@use '../abstract/themes' as *;
+@use "../abstract/variables" as *;
+@use "../abstract/themes" as *;
 
 * {
   margin: 0;
@@ -11,10 +11,11 @@ body {
   font-family: $font-family;
   font-size: $font-size-base;
   color: var(--color-text);
-  transition: background-color $transition-base, color $transition-base;
-
+  transition:
+    background-color $transition-base,
+    color $transition-base;
+  background-color: #f1f5f9;
 }
-
 
 .bg-primary {
   background-color: var(--color-bg);
@@ -53,12 +54,12 @@ body {
   cursor: pointer;
   transition: all var(--transition);
   box-shadow: var(--shadow-button);
-  
+
   &:hover {
     background-color: var(--color-accent-hover);
     transform: translateY(-2px);
   }
-  
+
   &:active {
     transform: translateY(0);
   }
@@ -66,9 +67,13 @@ body {
 
 .container {
   max-width: $container-width;
+  padding-left: $spacing-sm;
+  padding-right: $spacing-sm;
   margin: 0 auto;
-   &--small{
+  &--small {
     max-width: $container-width-small;
+    padding-left: $spacing-sm;
+    padding-right: $spacing-sm;
     margin: 0 auto;
-   }
+  }
 }

@@ -1,7 +1,14 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import TripList from '../components/trips/TripList.vue'
 import InputSerch from '../components/ui/InputSerch.vue'
 import ViewSwitcher from '../components/ui/ViewSwitcher.vue'
+
+const currentView = ref<'list' | 'grid'>('list')
+
+function handleViewSwitch(viewType: 'list' | 'grid') {
+  currentView.value = viewType
+}
 </script>
 
 <template>
@@ -13,9 +20,11 @@ import ViewSwitcher from '../components/ui/ViewSwitcher.vue'
             Путешествия
           </h1>
           <div class="home__setting-actions">
-            <button class="home__setting-button">
-              Создать
-            </button>
+            <router-link to="/edit-trip">
+              <button class="home__setting-button">
+                Создать
+              </button>
+            </router-link>
           </div>
         </div>
 
@@ -23,11 +32,11 @@ import ViewSwitcher from '../components/ui/ViewSwitcher.vue'
           <div class="home__setting-input-wrapper">
             <InputSerch />
           </div>
-          <ViewSwitcher />
+          <ViewSwitcher @switch-view="handleViewSwitch" />
         </div>
       </div>
 
-      <div class="home__trips">
+      <div class="home__trips" :class="currentView">
         <TripList />
       </div>
     </div>
@@ -132,6 +141,16 @@ import ViewSwitcher from '../components/ui/ViewSwitcher.vue'
   &__trips {
     flex: 1;
     min-width: 0;
+    &.list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    &.grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.5rem;
+    }
   }
 }
 </style>
