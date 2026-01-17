@@ -1,0 +1,24 @@
+{
+  "tripId": "1",
+  "photos": [
+    "/img/trips/sochi.jpg",
+    "/img/trips/sochi.jpg",
+    "/img/trips/sochi.jpg",
+    "/img/trips/sochi.jpg",
+    "/img/trips/sochi.jpg",
+    "/img/trips/sochi.jpg",
+    "/img/trips/sochi.jpg",
+    "/img/trips/sochi.jpg",
+    "/img/trips/sochi.jpg",
+    "/img/trips/sochi.jpg",
+    "/img/trips/sochi.jpg",
+    "/img/trips/sochi.jpg",
+    "/img/trips/sochi.jpg"
+  ],
+  "videos": [
+    {
+      "url": "/trips/1/video1.mp4",
+      "thumbnail": "/trips/1/thumb-video1.jpg"
+    }
+  ]
+}

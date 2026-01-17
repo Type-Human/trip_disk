@@ -6,3 +6,19 @@ export interface Trip {
   location: string
   image: string
 }
+
+export interface TripMedia {
+  tripId: string
+  photos: string[]
+  videos: Array<{
+    url: string
+    thumbnail: string
+    duration?: number
+  }>
+  total: number
+}
+
+export interface Folder {
+  id: string
+  name: string
+}

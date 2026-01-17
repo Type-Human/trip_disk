@@ -1,4 +1,4 @@
-import type { Trip } from '../types/trip'
+import type { Trip, TripMedia } from '../types/trip'
 import { defineStore } from 'pinia'
 import { tripApi } from '../api/trip'
 
@@ -6,6 +6,7 @@ export const useTripStore = defineStore('trip', {
   state: () => ({
     trips: [] as Trip[],
     selectedTrip: null as Trip | null,
+    selectedMedia: null as TripMedia | null,
     isLoading: false,
     error: null as string | null,
   }),
@@ -47,6 +48,23 @@ export const useTripStore = defineStore('trip', {
     clearSelectedTrip() {
       this.selectedTrip = null
     },
+
+    async fetchTripMediaById(id: string) {
+      this.isLoading = true
+      this.error = null
+
+      try {
+        this.selectedMedia = await tripApi.getMedia(id)
+      }
+      catch (error) {
+        this.error = error instanceof Error ? error.message : 'Ошибка загрузки поездки'
+        console.error(`Failed to fetch trip ${id}:`, error)
+      }
+      finally {
+        this.isLoading = false
+      }
+    },
+
   },
 
   getters: {

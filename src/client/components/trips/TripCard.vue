@@ -16,29 +16,34 @@ function formatDate(dateString: string): string {
 </script>
 
 <template>
-  <div class="trip-card">
-    <div v-if="trip.image" class="trip-photo">
-      <img :src="trip.image" :alt="trip.title">
-    </div>
-    <div v-else class="trip-no-photo">
-      <span class="trip-icon">✈️</span>
-    </div>
+  <router-link
+    :to="`/trips/${trip.id}`"
+    class="trip-link"
+  >
+    <div class="trip-card">
+      <div v-if="trip.image" class="trip-photo">
+        <img :src="trip.image" :alt="trip.title">
+      </div>
+      <div v-else class="trip-no-photo">
+        <span class="trip-icon">✈️</span>
+      </div>
 
-    <div class="trip-info">
-      <h3>{{ trip.title }}</h3>
-      <p>{{ trip.description }}</p>
+      <div class="trip-info">
+        <h3>{{ trip.title }}</h3>
+        <p>{{ trip.description }}</p>
 
-      <div class="trip-bottom">
-        <div class="trip-details">
-          <span class="trip-date">📅 {{ formatDate(trip.date) }}</span>
-          <span class="trip-location">📍 {{ trip.location || 'Не указано' }}</span>
+        <div class="trip-bottom">
+          <div class="trip-details">
+            <span class="trip-date">📅 {{ formatDate(trip.date) }}</span>
+            <span class="trip-location">📍 {{ trip.location || 'Не указано' }}</span>
+          </div>
+          <button class="trip-more-btn">
+            →
+          </button>
         </div>
-        <button class="trip-more-btn">
-          →
-        </button>
       </div>
     </div>
-  </div>
+  </router-link>
 </template>
 
 <style scoped lang="scss">
