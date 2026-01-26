@@ -107,4 +107,5 @@ function handleKeydown(e: KeyboardEvent) {
   background: #667eea;
   color: white;
 }
+
 </style>

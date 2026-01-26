@@ -1,14 +1,27 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
+
+const props = defineProps<{
+  modelValue?: 'list' | 'grid'
+}>()
 
 const emit = defineEmits<{
   (e: 'switchView', viewType: 'list' | 'grid'): void
+  (e: 'update:modelValue', viewType: 'list' | 'grid'): void
 }>()
-const activeView = ref<'list' | 'grid'>('list')
+
+const activeView = ref<'list' | 'grid'>(props.modelValue || 'list')
+
+watch(() => props.modelValue, (newVal) => {
+  if (newVal) {
+    activeView.value = newVal
+  }
+}, { immediate: true })
 
 function switchView(viewType: 'list' | 'grid') {
   activeView.value = viewType
   emit('switchView', viewType)
+  emit('update:modelValue', viewType)
 }
 </script>
 

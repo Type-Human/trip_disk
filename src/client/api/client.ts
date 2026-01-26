@@ -11,11 +11,15 @@ export const api = {
   },
 
   post<T>(url: string, body?: any) {
+    const headers: Record<string, string> = {}
+    if (!(body instanceof FormData)) {
+      headers['Content-Type'] = 'application/json'
+    }
     return $fetch<T>(url, {
       baseURL,
       method: 'POST',
       body,
-      headers: { 'Content-Type': 'application/json' },
+      headers,
     })
   },
 

@@ -4,21 +4,40 @@ export interface Trip {
   description: string
   date: string
   location: string
-  image: string
+  coverImage?: string
+  image?: string // Старое поле для обратной совместимости
+  createdAt: string
+  updatedAt: string
+  userId?: string
 }
 
-export interface TripMedia {
+export interface Photo {
+  id: string
   tripId: string
-  photos: string[]
-  videos: Array<{
-    url: string
-    thumbnail: string
-    duration?: number
-  }>
-  total: number
+  url: string
+  filename: string
+  size: number
+  uploadedAt: string
+  folderId?: string
 }
 
 export interface Folder {
   id: string
+  tripId: string
   name: string
+  color?: string
+  createdAt: string
+}
+
+export interface CreateTripDto {
+  title: string
+  description: string
+  date: string
+  location: string
+  coverImage?: File | null
+}
+
+export interface UploadPhotoDto {
+  tripId: string
+  folderId?: string
 }
