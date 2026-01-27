@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import type { Photo } from '../../types/trip'
 
-defineProps<{
+const _props = defineProps<{
   photos: Photo[]
   folderName?: string
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   upload: []
+  photoClick: [index: number]
 }>()
 
 function getPhotoUrl(photo: Photo): string {
@@ -20,6 +21,14 @@ function getPhotoUrl(photo: Photo): string {
   }
 
   return `http://localhost:3000${photo.url}`
+}
+
+function handlePhotoClick(index: number) {
+  emit('photoClick', index)
+}
+
+function handleUploadClick() {
+  emit('upload')
 }
 </script>
 
@@ -35,13 +44,17 @@ function getPhotoUrl(photo: Photo): string {
       <p class="empty-subtext">
         Добавьте фото, нажав кнопку выше
       </p>
+      <button class="upload-btn" @click="handleUploadClick">
+        Добавить фото
+      </button>
     </div>
 
     <div v-else class="photos-grid">
       <div
-        v-for="photo in photos"
+        v-for="(photo, index) in photos"
         :key="photo.id"
         class="photo-item"
+        @click="handlePhotoClick(index)"
       >
         <img
           :src="getPhotoUrl(photo)"

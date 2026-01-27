@@ -67,9 +67,6 @@ onMounted(() => {
       </div>
       <h3>У вас пока нет поездок</h3>
       <p>Создайте свою первую поездку!</p>
-      <button @click="showCreateModal = true">
-        Создать поездку
-      </button>
     </div>
 
     <div v-else :class="viewType === 'grid' ? 'trips-grid' : 'trips-list'">

@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import type { Trip, CreateTripDto } from '../../types/trip'
+import type { CreateTripDto, Trip } from '../../types/trip'
+import { onMounted, ref } from 'vue'
 import { tripApi } from '../../api'
-import TripCard from './TripCard.vue'
 import CreateTripModal from '../modals/CreateTripModal.vue'
+import TripCard from './TripCard.vue'
 
 const trips = ref<Trip[]>([])
 const showCreateModal = ref(false)
@@ -14,9 +14,11 @@ async function fetchTrips() {
   try {
     isLoading.value = true
     trips.value = await tripApi.getAll()
-  } catch (error) {
+  }
+  catch (error) {
     console.error('Ошибка загрузки поездок:', error)
-  } finally {
+  }
+  finally {
     isLoading.value = false
   }
 }
@@ -27,10 +29,11 @@ async function handleCreateTrip(data: CreateTripDto) {
     const newTrip = await tripApi.create(data)
     trips.value.unshift(newTrip)
     showCreateModal.value = false
-  } catch (error) {
+  }
+  catch (error) {
     console.error('Ошибка создания поездки:', error)
-    alert('Не удалось создать поездку')
-  } finally {
+  }
+  finally {
     isCreating.value = false
   }
 }
@@ -54,7 +57,9 @@ onMounted(() => {
     </div>
 
     <div v-else-if="trips.length === 0" class="empty-state">
-      <div class="empty-icon">✈️</div>
+      <div class="empty-icon">
+        ✈️
+      </div>
       <h3>У вас пока нет поездок</h3>
       <p>Создайте свою первую поездку!</p>
       <button class="empty-btn" @click="showCreateModal = true">
@@ -169,6 +174,4 @@ onMounted(() => {
   padding: 48px;
   color: #6b7280;
 }
-
 </style>
-

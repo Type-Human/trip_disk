@@ -4,8 +4,9 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { tripApi } from '../api'
 import PhotoGallery from '../components/details/PhotoGallery.vue'
+import PhotoViewer from '../components/details/PhotoViewer.vue'
 import AddFolderModal from '../components/modals/AddFolderModal.vue'
-import PhotoUpload from '../components/Upload/PhotoUpload.vue'
+import PhotoUpload from '../components/upload/PhotoUpload.vue'
 
 const route = useRoute()
 const tripId = route.params.id as string
@@ -18,6 +19,8 @@ const folders = ref<Folder[]>([
 const activeFolder = ref('all')
 const showUpload = ref(false)
 const showCreateFolder = ref(false)
+const showPhotoViewer = ref(false)
+const currentPhotoIndex = ref(0)
 const isLoading = ref(false)
 const isUploading = ref(false)
 
@@ -85,6 +88,11 @@ async function handleCreateFolder(name: string) {
   }
 }
 
+function openPhotoViewer(index: number) {
+  currentPhotoIndex.value = index
+  showPhotoViewer.value = true
+}
+
 onMounted(() => {
   fetchTripData()
 })
@@ -132,6 +140,7 @@ onMounted(() => {
       :photos="filteredPhotos"
       :folder-name="folders.find(f => f.id === activeFolder)?.name || 'Фото'"
       @upload="showUpload = true"
+      @photo-click="openPhotoViewer"
     />
 
     <PhotoUpload
@@ -146,6 +155,15 @@ onMounted(() => {
       v-if="showCreateFolder"
       @close="showCreateFolder = false"
       @create="handleCreateFolder"
+    />
+
+    <PhotoViewer
+      v-if="showPhotoViewer"
+      :photos="filteredPhotos"
+      :current-index="currentPhotoIndex"
+      :show="showPhotoViewer"
+      @close="showPhotoViewer = false"
+      @update:current-index="currentPhotoIndex = $event"
     />
 
     <div v-if="isLoading" class="loading">
@@ -288,7 +306,6 @@ onMounted(() => {
   display: flex;
   gap: 6px;
   overflow-x: auto;
-
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
 
