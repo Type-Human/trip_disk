@@ -5,7 +5,6 @@ import { Hono } from 'hono'
 export function createFolderRoutes(folderService: FolderService) {
   const app = new Hono()
 
-
   app.post('/', async (c) => {
     try {
       const body = await c.req.json<CreateFolderDto>()

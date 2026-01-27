@@ -35,9 +35,6 @@ function getPhotoUrl(photo: Photo): string {
       <p class="empty-subtext">
         Добавьте фото, нажав кнопку выше
       </p>
-      <button class="upload-btn" @click="$emit('upload')">
-        Загрузить фото
-      </button>
     </div>
 
     <div v-else class="photos-grid">
@@ -67,11 +64,9 @@ function getPhotoUrl(photo: Photo): string {
   padding: 64px 24px;
   background: #f9fafb;
   border-radius: 12px;
-  margin-top: 24px;
 
   .empty-icon {
     font-size: 64px;
-    margin-bottom: 16px;
     opacity: 0.6;
   }
 

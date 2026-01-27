@@ -95,96 +95,152 @@ onMounted(() => {
 .home {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 24px;
-  margin-top: 40px;
+  padding: 12px;
 }
 
 .header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: $spacing-md;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 20px;
 }
 
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
+  width: 100%;
 }
 
 .header h1 {
   margin: 0;
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 700;
   color: #111827;
 }
 
 .create-btn {
-  padding: 12px 24px;
-  background: $color-primary;
+  padding: 12px 16px;
+  background: #6366f1;
   color: white;
   border: none;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.2s;
-
-  &:hover {
-    background: #4f46e5;
-  }
+  white-space: nowrap;
+  flex: 1;
 }
 
 .trips-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 24px;
+  grid-template-columns: 1fr;
+  gap: 16px;
 }
 
 .trips-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 .empty-state {
   text-align: center;
-  padding: 64px 24px;
+  padding: 40px 20px;
   background: #f9fafb;
   border-radius: 12px;
 }
 
 .empty-icon {
-  font-size: 64px;
+  font-size: 48px;
   margin-bottom: 16px;
 }
 
 .empty-state h3 {
   margin: 0 0 8px 0;
+  font-size: 18px;
   color: #111827;
 }
 
 .empty-state p {
-  margin: 0 0 24px 0;
+  margin: 0 0 20px 0;
+  font-size: 14px;
   color: #6b7280;
 }
 
 .empty-state button {
   padding: 12px 24px;
-  background: $color-primary;
+  background: #6366f1;
   color: white;
   border: none;
   border-radius: 8px;
+  font-size: 14px;
   cursor: pointer;
-
-  &:hover {
-    background: #4f46e5;
-  }
 }
 
 .loading {
   text-align: center;
-  padding: 48px;
+  padding: 40px;
   color: #6b7280;
+}
+
+@media (min-width: 640px) {
+  .home {
+    padding: 24px;
+  }
+
+  .header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 24px;
+    margin-bottom: 32px;
+  }
+
+  .header-actions {
+    width: auto;
+    gap: 16px;
+  }
+
+  .header h1 {
+    font-size: 28px;
+  }
+
+  .create-btn {
+    padding: 12px 24px;
+    flex: none;
+  }
+
+  .trips-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+  }
+
+  .trips-list {
+    gap: 16px;
+  }
+
+  .empty-state {
+    padding: 60px 24px;
+  }
+
+  .empty-icon {
+    font-size: 64px;
+  }
+
+  .empty-state h3 {
+    font-size: 20px;
+  }
+
+  .loading {
+    padding: 60px;
+  }
+}
+
+@media (min-width: 768px) {
+  .trips-grid {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 24px;
+  }
 }
 </style>

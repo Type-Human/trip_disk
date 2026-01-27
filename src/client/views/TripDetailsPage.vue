@@ -106,10 +106,11 @@ onMounted(() => {
           + Папка
         </button>
         <button class="btn-primary" @click="showUpload = true">
-          📷 Добавить фото
+          Добавить фото
         </button>
       </div>
     </div>
+
     <div class="folders-tabs">
       <div class="folders-scroll">
         <button
@@ -119,9 +120,9 @@ onMounted(() => {
           :class="{ active: activeFolder === folder.id }"
           @click="activeFolder = folder.id"
         >
-          {{ folder.name }}
-          <span class="photo-count">
-            {{ activeFolder === folder.id ? filteredPhotos.length : '' }}
+          <span class="folder-name">{{ folder.name }}</span>
+          <span v-if="activeFolder === folder.id" class="photo-count">
+            {{ filteredPhotos.length }}
           </span>
         </button>
       </div>
@@ -157,25 +158,39 @@ onMounted(() => {
 .trip-details {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 24px;
+  padding: 16px;
+
+  @media (min-width: 640px) {
+    padding: 24px;
+  }
 }
 
 .header {
   display: flex;
   align-items: flex-start;
-  gap: 24px;
-  margin-bottom: 32px;
+  gap: 16px;
+  margin-bottom: 24px;
   flex-wrap: wrap;
+
+  @media (min-width: 768px) {
+    gap: 24px;
+    margin-bottom: 32px;
+  }
 }
 
 .back-btn {
-  padding: 8px 16px;
+  padding: 10px 14px;
   background: #f3f4f6;
   border: 1px solid #e5e7eb;
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s;
   white-space: nowrap;
+  font-size: 14px;
+
+  @media (min-width: 640px) {
+    padding: 8px 16px;
+  }
 
   &:hover {
     background: #e5e7eb;
@@ -184,30 +199,65 @@ onMounted(() => {
 
 .header-content {
   flex: 1;
-  min-width: 200px;
+  min-width: 0;
 }
 
 .header-content h1 {
   margin: 0 0 8px 0;
-  font-size: 32px;
+  font-size: 20px;
+  line-height: 1.3;
   color: #111827;
+
+  @media (min-width: 640px) {
+    font-size: 24px;
+  }
+
+  @media (min-width: 1024px) {
+    font-size: 32px;
+  }
 }
 
 .header-actions {
   display: flex;
-  gap: 12px;
+  gap: 8px;
   flex-wrap: wrap;
+  width: 100%;
+
+  @media (min-width: 640px) {
+    width: auto;
+    gap: 12px;
+  }
 }
 
 .btn-primary,
 .btn-secondary {
-  padding: 12px 24px;
+  padding: 10px 14px;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  justify-content: center;
+
+  @media (min-width: 375px) {
+    font-size: 14px;
+    padding: 10px 16px;
+  }
+
+  @media (min-width: 640px) {
+    flex: none;
+    padding: 12px 20px;
+  }
+
+  @media (min-width: 768px) {
+    padding: 12px 24px;
+  }
 }
 
 .btn-primary {
@@ -231,33 +281,28 @@ onMounted(() => {
 }
 
 .folders-tabs {
-  margin-bottom: 32px;
   border-bottom: 1px solid #e5e7eb;
 }
 
 .folders-scroll {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   overflow-x: auto;
-  padding-bottom: 8px;
+
   -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 
   &::-webkit-scrollbar {
-    height: 6px;
+    display: none;
   }
 
-  &::-webkit-scrollbar-track {
-    background: #f1f5f9;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 3px;
+  @media (min-width: 640px) {
+    gap: 8px;
   }
 }
 
 .folder-tab {
-  padding: 12px 24px;
+  padding: 10px 14px;
   background: #f3f4f6;
   border: none;
   border-radius: 8px 8px 0 0;
@@ -265,8 +310,24 @@ onMounted(() => {
   white-space: nowrap;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   transition: all 0.2s;
+  font-size: 13px;
+  flex-shrink: 0;
+
+  @media (min-width: 375px) {
+    padding: 10px 16px;
+  }
+
+  @media (min-width: 640px) {
+    padding: 12px 20px;
+    font-size: 14px;
+    gap: 8px;
+  }
+
+  @media (min-width: 768px) {
+    padding: 12px 24px;
+  }
 
   &:hover {
     background: #e5e7eb;
@@ -276,16 +337,86 @@ onMounted(() => {
     background: #6366f1;
     color: white;
   }
+
+  .folder-name {
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    @media (min-width: 375px) {
+      max-width: 120px;
+    }
+
+    @media (min-width: 640px) {
+      max-width: 150px;
+    }
+
+    @media (min-width: 768px) {
+      max-width: 200px;
+    }
+  }
 }
 
 .photo-count {
-  font-size: 12px;
+  font-size: 11px;
   opacity: 0.8;
+  flex-shrink: 0;
+
+  @media (min-width: 640px) {
+    font-size: 12px;
+  }
 }
 
 .loading {
   text-align: center;
-  padding: 64px;
+  padding: 48px;
   color: #6b7280;
+
+  @media (min-width: 768px) {
+    padding: 64px;
+  }
+}
+
+@media (max-width: 639px) {
+  .header {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .back-btn {
+    align-self: flex-start;
+  }
+
+  .header-content {
+    width: 100%;
+  }
+
+  .header-actions {
+    justify-content: stretch;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    font-size: 12px;
+
+    @media (min-width: 350px) {
+      font-size: 13px;
+    }
+  }
+}
+
+@media (max-width: 374px) {
+  .header-actions {
+    flex-direction: column;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    width: 100%;
+  }
+
+  .folder-tab .folder-name {
+    max-width: 80px;
+  }
 }
 </style>
