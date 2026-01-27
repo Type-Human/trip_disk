@@ -5,10 +5,8 @@ export interface Trip {
   date: string
   location: string
   coverImage?: string
-  image?: string // Старое поле для обратной совместимости
   createdAt: string
   updatedAt: string
-  userId?: string
 }
 
 export interface Photo {
@@ -25,7 +23,6 @@ export interface Folder {
   id: string
   tripId: string
   name: string
-  color?: string
   createdAt: string
 }
 
@@ -34,10 +31,15 @@ export interface CreateTripDto {
   description: string
   date: string
   location: string
-  coverImage?: File | null
+}
+
+export interface CreateFolderDto {
+  tripId: string
+  name: string
 }
 
 export interface UploadPhotoDto {
   tripId: string
   folderId?: string
+  files: File[]
 }

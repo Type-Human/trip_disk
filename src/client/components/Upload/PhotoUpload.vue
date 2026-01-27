@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, onUnmounted, ref } from 'vue'
 
 const emit = defineEmits<{
   close: []
@@ -10,6 +10,30 @@ const files = ref<File[]>([])
 const isDragging = ref(false)
 const uploadProgress = ref(0)
 const isUploading = ref(false)
+
+const objectUrls = ref<Map<File, string>>(new Map())
+
+function getObjectUrl(file: File): string {
+  if (!objectUrls.value.has(file)) {
+    objectUrls.value.set(file, URL.createObjectURL(file))
+  }
+  return objectUrls.value.get(file)!
+}
+
+function revokeObjectUrl(file: File) {
+  const url = objectUrls.value.get(file)
+  if (url) {
+    URL.revokeObjectURL(url)
+    objectUrls.value.delete(file)
+  }
+}
+
+function cleanupUrls() {
+  objectUrls.value.forEach((url) => {
+    URL.revokeObjectURL(url)
+  })
+  objectUrls.value.clear()
+}
 
 function handleDragOver(e: DragEvent) {
   e.preventDefault()
@@ -47,6 +71,8 @@ function addFiles(newFiles: File[]) {
 }
 
 function removeFile(index: number) {
+  const file = files.value[index]
+  revokeObjectUrl(file)
   files.value.splice(index, 1)
 }
 
@@ -62,6 +88,7 @@ async function handleUpload() {
       clearInterval(interval)
       setTimeout(() => {
         emit('upload', files.value)
+
         files.value = []
         uploadProgress.value = 0
         isUploading.value = false
@@ -80,6 +107,10 @@ function formatFileSize(bytes: number): string {
 
   return `${Number.parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`
 }
+
+onUnmounted(() => {
+  cleanupUrls()
+})
 </script>
 
 <template>
@@ -131,7 +162,7 @@ function formatFileSize(bytes: number): string {
             <div class="file-preview">
               <img
                 v-if="file.type.startsWith('image/')"
-                :src="URL.createObjectURL(file)"
+                :src="getObjectUrl(file)"
                 :alt="file.name"
               >
               <div v-else class="file-icon">
@@ -189,6 +220,7 @@ function formatFileSize(bytes: number): string {
 </template>
 
 <style scoped>
+/* Стили остаются без изменений */
 .modal-overlay {
   position: fixed;
   top: 0;

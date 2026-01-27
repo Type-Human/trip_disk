@@ -5,7 +5,7 @@ import { useRoute } from 'vue-router'
 import { tripApi } from '../api'
 import PhotoGallery from '../components/details/PhotoGallery.vue'
 import AddFolderModal from '../components/modals/AddFolderModal.vue'
-import PhotoUpload from '../components/upload/PhotoUpload.vue'
+import PhotoUpload from '../components/Upload/PhotoUpload.vue'
 
 const route = useRoute()
 const tripId = route.params.id as string
@@ -67,7 +67,6 @@ async function handlePhotoUpload(files: File[], folderId?: string) {
   }
   catch (error) {
     console.error('Ошибка загрузки фото:', error)
-    alert('Не удалось загрузить фото')
   }
   finally {
     isUploading.value = false
@@ -83,7 +82,6 @@ async function handleCreateFolder(name: string) {
   }
   catch (error) {
     console.error('Ошибка создания папки:', error)
-    alert('Не удалось создать папку')
   }
 }
 

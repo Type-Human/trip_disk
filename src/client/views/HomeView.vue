@@ -34,7 +34,6 @@ async function handleCreateTrip(data: CreateTripDto) {
   }
   catch (error) {
     console.error('Ошибка создания поездки:', error)
-    alert('Не удалось создать поездку')
   }
   finally {
     isCreating.value = false
@@ -92,18 +91,19 @@ onMounted(() => {
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .home {
   max-width: 1200px;
   margin: 0 auto;
   padding: 24px;
+  margin-top: 40px;
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 32px;
+  margin-bottom: $spacing-md;
 }
 
 .header-actions {
@@ -121,7 +121,7 @@ onMounted(() => {
 
 .create-btn {
   padding: 12px 24px;
-  background: #6366f1;
+  background: $color-primary;
   color: white;
   border: none;
   border-radius: 8px;
@@ -152,7 +152,6 @@ onMounted(() => {
   padding: 64px 24px;
   background: #f9fafb;
   border-radius: 12px;
-  margin-top: 40px;
 }
 
 .empty-icon {
@@ -172,7 +171,7 @@ onMounted(() => {
 
 .empty-state button {
   padding: 12px 24px;
-  background: #6366f1;
+  background: $color-primary;
   color: white;
   border: none;
   border-radius: 8px;

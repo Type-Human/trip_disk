@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import TripForm from '../form/TripForm.vue'
 
-const props = defineProps<{
+const _props = defineProps<{
   show: boolean
   loading?: boolean
 }>()
