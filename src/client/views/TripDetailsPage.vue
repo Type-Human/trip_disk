@@ -6,6 +6,7 @@ import { tripApi } from '../api'
 import PhotoGallery from '../components/details/PhotoGallery.vue'
 import PhotoViewer from '../components/details/PhotoViewer.vue'
 import AddFolderModal from '../components/modals/AddFolderModal.vue'
+import BackBtn from '../components/ui/BackBtn.vue'
 import PhotoUpload from '../components/upload/PhotoUpload.vue'
 
 const route = useRoute()
@@ -23,6 +24,7 @@ const showPhotoViewer = ref(false)
 const currentPhotoIndex = ref(0)
 const isLoading = ref(false)
 const isUploading = ref(false)
+const showMobileMenu = ref(false)
 
 const filteredPhotos = computed(() => {
   if (activeFolder.value === 'all') {
@@ -101,21 +103,40 @@ onMounted(() => {
 <template>
   <div class="trip-details">
     <div class="header">
-      <button class="back-btn" @click="$router.push('/')">
-        ← Назад
-      </button>
-
-      <div class="header-content">
-        <h1>{{ trip?.title || 'Загрузка...' }}</h1>
+      <div class="title-container">
+        <BackBtn />
+        <div class="header-content">
+          <h1>{{ trip?.title || 'Загрузка...' }}</h1>
+        </div>
       </div>
 
-      <div class="header-actions">
+      <div class="desktop-actions">
         <button class="btn-secondary" @click="showCreateFolder = true">
           + Папка
         </button>
         <button class="btn-primary" @click="showUpload = true">
           Добавить фото
         </button>
+      </div>
+
+      <div class="mobile-menu">
+        <button class="mobile-menu-button" @click="showMobileMenu = !showMobileMenu">
+          <span class="menu-dots">⋮</span>
+        </button>
+
+        <div v-if="showMobileMenu" class="mobile-menu-overlay" @click="showMobileMenu = false">
+          <div class="mobile-menu-content" @click.stop>
+            <button class="mobile-menu-item" @click="showCreateFolder = true; showMobileMenu = false">
+              + Папка
+            </button>
+            <button class="mobile-menu-item" @click="showUpload = true; showMobileMenu = false">
+              Добавить фото
+            </button>
+            <button class="mobile-menu-close" @click="showMobileMenu = false">
+              Закрыть
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -185,34 +206,23 @@ onMounted(() => {
 
 .header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
+  justify-content: space-between;
   gap: 16px;
   margin-bottom: 24px;
-  flex-wrap: wrap;
+  position: relative;
 
   @media (min-width: 768px) {
-    gap: 24px;
     margin-bottom: 32px;
   }
 }
 
-.back-btn {
-  padding: 10px 14px;
-  background: #f3f4f6;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-  font-size: 14px;
-
-  @media (min-width: 640px) {
-    padding: 8px 16px;
-  }
-
-  &:hover {
-    background: #e5e7eb;
-  }
+.title-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
 }
 
 .header-content {
@@ -221,10 +231,14 @@ onMounted(() => {
 }
 
 .header-content h1 {
-  margin: 0 0 8px 0;
+  margin: 0;
   font-size: 20px;
-  line-height: 1.3;
+  font-weight: 600;
   color: #111827;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 
   @media (min-width: 640px) {
     font-size: 24px;
@@ -235,15 +249,13 @@ onMounted(() => {
   }
 }
 
-.header-actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  width: 100%;
+.desktop-actions {
+  display: none;
 
   @media (min-width: 640px) {
-    width: auto;
+    display: flex;
     gap: 12px;
+    align-items: center;
   }
 }
 
@@ -259,9 +271,6 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 6px;
-  flex: 1;
-  min-width: 0;
-  justify-content: center;
 
   @media (min-width: 375px) {
     font-size: 14px;
@@ -269,7 +278,6 @@ onMounted(() => {
   }
 
   @media (min-width: 640px) {
-    flex: none;
     padding: 12px 20px;
   }
 
@@ -298,6 +306,114 @@ onMounted(() => {
   }
 }
 
+.mobile-menu {
+  @media (min-width: 640px) {
+    display: none;
+  }
+}
+
+.mobile-menu-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 18px;
+  line-height: 1;
+
+  &:hover {
+    background: #e5e7eb;
+  }
+
+  .menu-dots {
+    display: inline-block;
+    transform: rotate(90deg);
+    font-weight: bold;
+    color: #374151;
+  }
+}
+
+.mobile-menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.mobile-menu-content {
+  width: 100%;
+  max-width: 500px;
+  background: white;
+  border-radius: 16px 16px 0 0;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: slideUp 0.3s ease-out;
+}
+
+.mobile-menu-item {
+  padding: 16px;
+  background: #f3f4f6;
+  border: none;
+  border-radius: 12px;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #e5e7eb;
+  }
+}
+
+.mobile-menu-close {
+  padding: 16px;
+  background: transparent;
+  border: none;
+  color: #6b7280;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    color: #111827;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
 .folders-tabs {
   border-bottom: 1px solid #e5e7eb;
 }
@@ -308,6 +424,7 @@ onMounted(() => {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
+  padding-bottom: 2px;
 
   &::-webkit-scrollbar {
     display: none;
@@ -396,44 +513,19 @@ onMounted(() => {
 
 @media (max-width: 639px) {
   .header {
-    flex-direction: column;
     gap: 12px;
   }
 
-  .back-btn {
-    align-self: flex-start;
+  .title-container {
+    gap: 10px;
   }
 
-  .header-content {
-    width: 100%;
-  }
+  .header-content h1 {
+    font-size: 18px;
 
-  .header-actions {
-    justify-content: stretch;
-  }
-
-  .btn-primary,
-  .btn-secondary {
-    font-size: 12px;
-
-    @media (min-width: 350px) {
-      font-size: 13px;
+    @media (min-width: 375px) {
+      font-size: 20px;
     }
-  }
-}
-
-@media (max-width: 374px) {
-  .header-actions {
-    flex-direction: column;
-  }
-
-  .btn-primary,
-  .btn-secondary {
-    width: 100%;
-  }
-
-  .folder-tab .folder-name {
-    max-width: 80px;
   }
 }
 </style>

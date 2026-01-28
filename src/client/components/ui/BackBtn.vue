@@ -15,7 +15,6 @@ const router = useRouter()
   width: 40px;
   height: 40px;
   border-radius: 8px;
-  margin-bottom: 24px;
   background: white;
   display: flex;
   align-items: center;

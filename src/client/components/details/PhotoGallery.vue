@@ -27,9 +27,9 @@ function handlePhotoClick(index: number) {
   emit('photoClick', index)
 }
 
-function handleUploadClick() {
-  emit('upload')
-}
+// function handleUploadClick() {
+//   emit('upload')
+// }
 </script>
 
 <template>
@@ -44,9 +44,6 @@ function handleUploadClick() {
       <p class="empty-subtext">
         Добавьте фото, нажав кнопку выше
       </p>
-      <button class="upload-btn" @click="handleUploadClick">
-        Добавить фото
-      </button>
     </div>
 
     <div v-else class="photos-grid">
@@ -94,22 +91,6 @@ function handleUploadClick() {
     font-size: 14px;
     color: #64748b;
     margin: 0 0 24px 0;
-  }
-
-  .upload-btn {
-    padding: 12px 24px;
-    background: #6366f1;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 0.2s;
-
-    &:hover {
-      background: #4f46e5;
-    }
   }
 }
 
