@@ -35,5 +35,23 @@ export function createPhotoRoutes(photoService: PhotoService) {
     }
   })
 
+  app.delete('/:id', async (c) => {
+    try {
+      const id = c.req.param('id')
+      const deleted = await photoService.delete(id)
+
+      if (deleted) {
+        return c.json({ message: 'Фото удалено' }, 200)
+      }
+      else {
+        return c.json({ error: 'Фото не найдено' }, 404)
+      }
+    }
+    catch (error) {
+      console.error('Ошибка удаления фото:', error)
+      return c.json({ error: 'Ошибка удаления фото' }, 500)
+    }
+  })
+
   return app
 }

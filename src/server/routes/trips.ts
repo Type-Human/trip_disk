@@ -61,6 +61,32 @@ export function createTripRoutes(
     }
   })
 
+  app.delete('/:id', async (c) => {
+    try {
+      const id = c.req.param('id')
+
+      const trip = await tripService.getById(id)
+      if (!trip) {
+        return c.json({ error: 'Поездка не найдена' }, 404)
+      }
+
+      await photoService.deleteByTripId(id)
+
+      const deleted = await tripService.delete(id)
+
+      if (deleted) {
+        return c.json({ message: 'Поездка удалена' }, 200)
+      }
+      else {
+        return c.json({ error: 'Ошибка удаления поездки' }, 500)
+      }
+    }
+    catch (error) {
+      console.error('Ошибка удаления поездки:', error)
+      return c.json({ error: 'Ошибка удаления поездки' }, 500)
+    }
+  })
+
   app.get('/:id/photos', async (c) => {
     const tripId = c.req.param('id')
     const photos = await photoService.getByTripId(tripId)

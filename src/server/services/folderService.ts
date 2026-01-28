@@ -25,6 +25,17 @@ export class FolderService {
     return folder
   }
 
+  async delete(id: string): Promise<boolean> {
+    const index = this.folders.findIndex(f => f.id === id)
+    if (index === -1) {
+      return false
+    }
+
+    this.folders.splice(index, 1)
+    await this.save()
+    return true
+  }
+
   private async save(): Promise<void> {
     await foldersStorage.save(this.folders)
   }

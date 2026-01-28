@@ -17,6 +17,7 @@ VITE_USE_MOCK=false
 ```
 
 Или установите переменную окружения:
+
 ```bash
 VITE_USE_MOCK=false npm run dev
 ```
@@ -42,14 +43,17 @@ npm run dev
 ## Структура API
 
 ### Поездки
+
 - `GET /api/trips` - получить все поездки
 - `GET /api/trips/:id` - получить поездку по ID
 - `POST /api/trips` - создать поездку
 
 ### Фото
+
 - `GET /api/trips/:id/photos` - получить фото поездки
 - `POST /api/photos/upload` - загрузить фото (FormData с полями: files[], tripId, folderId?)
 
 ### Папки
+
 - `GET /api/trips/:id/folders` - получить папки поездки
 - `POST /api/folders` - создать папку

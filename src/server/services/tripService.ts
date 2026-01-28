@@ -33,6 +33,17 @@ export class TripService {
     return trip
   }
 
+  async delete(id: string): Promise<boolean> {
+    const index = this.trips.findIndex(t => t.id === id)
+    if (index === -1) {
+      return false
+    }
+
+    this.trips.splice(index, 1)
+    await this.save()
+    return true
+  }
+
   private async save(): Promise<void> {
     await tripsStorage.save(this.trips)
   }
