@@ -56,17 +56,6 @@ onMounted(() => {
       Загрузка...
     </div>
 
-    <div v-else-if="trips.length === 0" class="empty-state">
-      <div class="empty-icon">
-        ✈️
-      </div>
-      <h3>У вас пока нет поездок</h3>
-      <p>Создайте свою первую поездку!</p>
-      <button class="empty-btn" @click="showCreateModal = true">
-        Создать поездку
-      </button>
-    </div>
-
     <div v-else class="trips-grid">
       <TripCard
         v-for="trip in trips"
@@ -128,45 +117,6 @@ onMounted(() => {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 24px;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 64px 24px;
-  background: #f9fafb;
-  border-radius: 12px;
-  margin-top: 40px;
-}
-
-.empty-icon {
-  font-size: 64px;
-  margin-bottom: 16px;
-}
-
-.empty-state h3 {
-  margin: 0 0 8px 0;
-  color: #111827;
-  font-size: 20px;
-}
-
-.empty-state p {
-  margin: 0 0 24px 0;
-  color: #6b7280;
-}
-
-.empty-btn {
-  padding: 12px 24px;
-  background: #6366f1;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-
-  &:hover {
-    background: #4f46e5;
-  }
 }
 
 .loading {

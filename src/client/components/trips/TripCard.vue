@@ -2,6 +2,7 @@
 import type { Photo, Trip } from '../../types/trip'
 import { computed, onMounted, ref } from 'vue'
 import { tripApi } from '../../api'
+import Icon from '../ui/Icon.vue'
 
 const props = defineProps<{
   trip: Trip
@@ -31,10 +32,6 @@ const imageUrl = computed(() => {
     }
 
     return `http://localhost:3000${props.trip.coverImage}`
-  }
-
-  if (props.trip.image) {
-    return props.trip.image
   }
 
   if (previewPhoto.value) {
@@ -85,6 +82,11 @@ onMounted(() => {
             ✈️
           </div>
         </div>
+        <div class="delete-badge">
+          <Icon size="16" stroke="#ef4444">
+            <path data-v-943d8c11="" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+          </Icon>
+        </div>
         <div class="date-badge">
           {{ formatDate(trip.date) }}
         </div>
@@ -101,10 +103,10 @@ onMounted(() => {
 
         <div class="content-footer">
           <div class="location-info">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <Icon size="16" stroke="#6366f1">
               <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
               <circle cx="12" cy="10" r="3" />
-            </svg>
+            </Icon>
             <span>{{ trip.location || 'Не указано' }}</span>
           </div>
         </div>
@@ -195,7 +197,7 @@ onMounted(() => {
 .date-badge {
   position: absolute;
   top: 16px;
-  right: 16px;
+  right: 50px;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(4px);
   padding: 6px 12px;
@@ -204,6 +206,30 @@ onMounted(() => {
   font-weight: $font-weight-medium;
   color: $color-gray-darker;
   box-shadow: $shadow-sm;
+}
+
+.delete-badge {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 26px;
+  height: 26px;
+  background: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: background 0.2s;
+
+  &:hover {
+    background: #fee2e2;
+
+    :deep(.icon) {
+      transform: scale(1.1);
+    }
+  }
 }
 
 .trip-content {
@@ -255,7 +281,7 @@ onMounted(() => {
     font-size: $font-size-sm;
     color: $color-gray-dark;
 
-    svg {
+    :deep(.icon) {
       color: $color-primary;
       flex-shrink: 0;
     }
@@ -296,9 +322,13 @@ onMounted(() => {
 
   .date-badge {
     top: 12px;
-    right: 12px;
+    right: 50px;
     font-size: 11px;
-    padding: 4px 8px;
+    padding: 6px 12px;
+  }
+
+  .delete-badge {
+    top: 12px;
   }
 
   .trip-content {

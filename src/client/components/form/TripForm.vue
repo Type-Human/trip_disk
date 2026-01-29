@@ -34,15 +34,6 @@ function handleCoverImageSelect(event: Event) {
   }
 }
 
-function changePreview() {
-  fileInput.value?.click()
-}
-
-function removeCoverImage() {
-  form.value.coverImage = null
-  previewUrl.value = null
-}
-
 function handleSubmit() {
   if (!form.value.title.trim()) {
     return
@@ -120,21 +111,6 @@ function handleKeydown(e: KeyboardEvent) {
       <div v-if="previewUrl" class="cover-preview-wrapper">
         <div class="cover-preview">
           <img :src="previewUrl" alt="Превью">
-          <div class="preview-overlay">
-            <button type="button" class="remove-preview" title="Удалить превью" @click="removeCoverImage">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
-            <button type="button" class="change-preview" title="Изменить превью" @click="changePreview">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="17 8 12 3 7 8" />
-                <line x1="12" y1="3" x2="12" y2="15" />
-              </svg>
-            </button>
-          </div>
         </div>
         <input
           id="coverImage"
@@ -158,11 +134,7 @@ function handleKeydown(e: KeyboardEvent) {
         >
         <label for="coverImage" class="upload-label">
           <div class="upload-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="17 8 12 3 7 8" />
-              <line x1="12" y1="3" x2="12" y2="15" />
-            </svg>
+            <img src="/img/svg/upload-icon.svg" alt="">
           </div>
           <div class="upload-text">
             <span class="upload-title">Загрузить превью</span>
@@ -196,6 +168,9 @@ function handleKeydown(e: KeyboardEvent) {
 <style scoped lang="scss">
 .trip-form {
   padding: 28px;
+  @media (max-width: 768px) {
+    padding: 16px;
+  }
 }
 
 .form-group {
@@ -320,26 +295,6 @@ function handleKeydown(e: KeyboardEvent) {
     display: block;
     max-height: 300px;
     object-fit: cover;
-  }
-
-  .preview-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    opacity: 0;
-    transition: all 0.3s ease;
-
-    .cover-preview:hover & {
-      background: rgba(0, 0, 0, 0.4);
-      opacity: 1;
-    }
   }
 
   .remove-preview,

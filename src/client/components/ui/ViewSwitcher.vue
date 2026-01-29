@@ -47,6 +47,10 @@ function switchView(viewType: 'list' | 'grid') {
   border-radius: 8px;
   background-color: #e9ecef;
 
+  @media (max-width: 768px) {
+    display: none;
+  }
+
   &-button {
     height: 36px;
     width: 50px;

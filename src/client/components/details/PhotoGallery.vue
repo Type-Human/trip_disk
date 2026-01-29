@@ -26,10 +26,6 @@ function getPhotoUrl(photo: Photo): string {
 function handlePhotoClick(index: number) {
   emit('photoClick', index)
 }
-
-// function handleUploadClick() {
-//   emit('upload')
-// }
 </script>
 
 <template>

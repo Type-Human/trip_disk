@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import TripForm from '../form/TripForm.vue'
+import Icon from '../ui/Icon.vue'
 
 const _props = defineProps<{
   show: boolean
@@ -36,17 +37,17 @@ function handleOverlayClick(e: MouseEvent) {
       <div class="modal-content" @click.stop>
         <div class="modal-header">
           <div class="header-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <Icon size="24" color="white">
               <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
               <circle cx="12" cy="10" r="3" />
-            </svg>
+            </Icon>
           </div>
           <h2>Создать новую поездку</h2>
           <button class="close-btn" aria-label="Закрыть" @click="handleCancel">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <Icon size="20" color="currentColor">
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
+            </Icon>
           </button>
         </div>
         <div class="modal-body">
@@ -97,6 +98,9 @@ function handleOverlayClick(e: MouseEvent) {
   padding: 28px 28px 20px;
   border-bottom: 1px solid #f3f4f6;
   background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+  @media (max-width: 768px) {
+    padding: 16px 16px 20px;
+  }
 
   .header-icon {
     width: 48px;
@@ -123,6 +127,9 @@ function handleOverlayClick(e: MouseEvent) {
     color: #111827;
     flex: 1;
     letter-spacing: -0.5px;
+    @media (max-width: 768px) {
+      font-size: 16px;
+    }
   }
 
   .close-btn {

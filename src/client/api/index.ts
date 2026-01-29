@@ -5,7 +5,7 @@ import { mockApi } from './mock'
 const USE_MOCK = (import.meta as any).VITE_USE_MOCK !== 'false'
 
 export const tripApi = {
-  // Получить все поездки
+
   async getAll(): Promise<Trip[]> {
     if (USE_MOCK) {
       return mockApi.getTrips()
@@ -13,7 +13,6 @@ export const tripApi = {
     return realApi.get<Trip[]>('/trips')
   },
 
-  // Получить поездку по ID
   async getById(id: string): Promise<Trip> {
     if (USE_MOCK) {
       return mockApi.getTripById(id)
@@ -21,7 +20,6 @@ export const tripApi = {
     return realApi.get<Trip>(`/trips/${id}`)
   },
 
-  // Создать поездку
   async create(data: CreateTripDto & { coverImage?: File }): Promise<Trip> {
     if (USE_MOCK) {
       return mockApi.createTrip(data)
@@ -45,7 +43,6 @@ export const tripApi = {
     })
   },
 
-  // Удалить поездку
   async delete(id: string): Promise<void> {
     if (USE_MOCK) {
       return mockApi.deleteTrip(id)
@@ -53,7 +50,6 @@ export const tripApi = {
     return realApi.delete<void>(`/trips/${id}`)
   },
 
-  // Получить фото поездки
   async getPhotosByTripId(tripId: string): Promise<Photo[]> {
     if (USE_MOCK) {
       return mockApi.getPhotosByTripId(tripId)
@@ -61,7 +57,6 @@ export const tripApi = {
     return realApi.get<Photo[]>(`/trips/${tripId}/photos`)
   },
 
-  // Загрузить фото
   async uploadPhotos(
     tripId: string,
     files: File[],
@@ -83,7 +78,6 @@ export const tripApi = {
     return realApi.upload<Photo[]>('/photos/upload', formData)
   },
 
-  // Удалить фото
   async deletePhoto(id: string): Promise<void> {
     if (USE_MOCK) {
       return mockApi.deletePhoto(id)
@@ -91,7 +85,6 @@ export const tripApi = {
     return realApi.delete<void>(`/photos/${id}`)
   },
 
-  // Получить папки поездки
   async getFoldersByTripId(tripId: string): Promise<Folder[]> {
     if (USE_MOCK) {
       return mockApi.getFoldersByTripId(tripId)
@@ -99,7 +92,6 @@ export const tripApi = {
     return realApi.get<Folder[]>(`/trips/${tripId}/folders`).catch(() => [])
   },
 
-  // Получить все папки (с фильтром по tripId)
   async getFolders(tripId?: string): Promise<Folder[]> {
     if (USE_MOCK) {
       return mockApi.getFoldersByTripId(tripId || '')
@@ -109,7 +101,6 @@ export const tripApi = {
     return realApi.get<Folder[]>(url).catch(() => [])
   },
 
-  // Создать папку
   async createFolder(tripId: string, name: string): Promise<Folder> {
     if (USE_MOCK) {
       return mockApi.createFolder(tripId, name)
@@ -117,7 +108,6 @@ export const tripApi = {
     return realApi.post<Folder>('/folders', { tripId, name })
   },
 
-  // Удалить папку
   async deleteFolder(id: string): Promise<void> {
     if (USE_MOCK) {
       return mockApi.deleteFolder(id)
@@ -125,7 +115,6 @@ export const tripApi = {
     return realApi.delete<void>(`/folders/${id}`)
   },
 
-  // Обновить поездку (опционально)
   async update(id: string, data: Partial<Trip>): Promise<Trip> {
     if (USE_MOCK) {
       return mockApi.updateTrip(id, data)
@@ -133,7 +122,6 @@ export const tripApi = {
     return realApi.put<Trip>(`/trips/${id}`, data)
   },
 
-  // Обновить папку (опционально)
   async updateFolder(id: string, name: string): Promise<Folder> {
     if (USE_MOCK) {
       return mockApi.updateFolder(id, name)
@@ -141,7 +129,6 @@ export const tripApi = {
     return realApi.put<Folder>(`/folders/${id}`, { name })
   },
 
-  // Обновить фото (опционально)
   async updatePhoto(id: string, data: Partial<Photo>): Promise<Photo> {
     if (USE_MOCK) {
       return mockApi.updatePhoto(id, data)

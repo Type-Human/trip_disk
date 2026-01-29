@@ -423,15 +423,29 @@ onMounted(() => {
   gap: 6px;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
   padding-bottom: 2px;
+  scrollbar-width: thin;
+  scrollbar-color: #ccc transparent;
 
   &::-webkit-scrollbar {
-    display: none;
+    height: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: #ccc;
+    border-radius: 3px;
   }
 
   @media (min-width: 640px) {
     gap: 8px;
+
+    &::-webkit-scrollbar {
+      height: 8px;
+    }
   }
 }
 
