@@ -1,13 +1,9 @@
 node_modules
 dist
-.git
-.gitignore
+*.db
+*.db-*
+uploads
+data
 .env
-.env.local
+.git
 *.log
-.DS_Store
-public/data
-public/uploads
-data/*.db
-*.db-journal
-# Не исключаем bun.lock - он нужен для установки зависимостей
