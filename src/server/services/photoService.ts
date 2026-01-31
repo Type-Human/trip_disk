@@ -1,17 +1,24 @@
 import type { Photo } from '../../client/types/trip'
-import { existsSync, unlink } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
+import { unlink } from 'node:fs/promises'
 import { join } from 'node:path'
-import { fileStorage, photosStorage } from '../storage'
+import { getDatabase } from '../database'
+import { fileStorage } from '../storage'
 
 export class PhotoService {
-  private photos: Photo[] = []
-
   async initialize(): Promise<void> {
-    this.photos = await photosStorage.load()
   }
 
   async getByTripId(tripId: string): Promise<Photo[]> {
-    return this.photos.filter(p => p.tripId === tripId)
+    const db = getDatabase().getDatabase()
+    const photos = db.prepare('SELECT * FROM photos WHERE tripId = ? ORDER BY uploadedAt DESC').all(tripId) as Photo[]
+    return photos
+  }
+
+  async getByFolderId(folderId: string): Promise<Photo[]> {
+    const db = getDatabase().getDatabase()
+    const photos = db.prepare('SELECT * FROM photos WHERE folderId = ? ORDER BY uploadedAt DESC').all(folderId) as Photo[]
+    return photos
   }
 
   async upload(
@@ -19,6 +26,7 @@ export class PhotoService {
     files: File[],
     folderId?: string,
   ): Promise<Photo[]> {
+    const db = getDatabase().getDatabase()
     const uploadedPhotos: Photo[] = []
 
     for (const file of files) {
@@ -34,21 +42,32 @@ export class PhotoService {
         folderId,
       }
 
-      this.photos.push(photo)
+      db.prepare(`
+        INSERT INTO photos (id, tripId, folderId, url, filename, size, uploadedAt)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        photo.id,
+        photo.tripId,
+        photo.folderId || null,
+        photo.url,
+        photo.filename,
+        photo.size,
+        photo.uploadedAt,
+      )
+
       uploadedPhotos.push(photo)
     }
 
-    await this.save()
     return uploadedPhotos
   }
 
   async delete(id: string): Promise<boolean> {
-    const photoIndex = this.photos.findIndex(p => p.id === id)
-    if (photoIndex === -1) {
+    const db = getDatabase().getDatabase()
+    const photo = db.prepare('SELECT * FROM photos WHERE id = ?').get(id) as Photo | undefined
+
+    if (!photo) {
       return false
     }
-
-    const photo = this.photos[photoIndex]
 
     try {
       const filename = photo.url.replace('/uploads/', '')
@@ -62,18 +81,15 @@ export class PhotoService {
       console.error('Ошибка удаления файла:', error)
     }
 
-    this.photos.splice(photoIndex, 1)
-    await this.save()
-    return true
+    const result = db.prepare('DELETE FROM photos WHERE id = ?').run(id)
+    return result.changes > 0
   }
 
   async deleteByTripId(tripId: string): Promise<number> {
-    const photosToDelete = this.photos.filter(p => p.tripId === tripId)
-    const deletedCount = photosToDelete.length
+    const db = getDatabase().getDatabase()
+    const photos = db.prepare('SELECT * FROM photos WHERE tripId = ?').all(tripId) as Photo[]
 
-    this.photos = this.photos.filter(p => p.tripId !== tripId)
-
-    for (const photo of photosToDelete) {
+    for (const photo of photos) {
       try {
         const filename = photo.url.replace('/uploads/', '')
         const filepath = join(process.cwd(), 'public', 'uploads', filename)
@@ -87,14 +103,29 @@ export class PhotoService {
       }
     }
 
-    if (deletedCount > 0) {
-      await this.save()
-    }
-
-    return deletedCount
+    const result = db.prepare('DELETE FROM photos WHERE tripId = ?').run(tripId)
+    return result.changes
   }
 
-  private async save(): Promise<void> {
-    await photosStorage.save(this.photos)
+  async deleteByFolderId(folderId: string): Promise<number> {
+    const db = getDatabase().getDatabase()
+    const photos = db.prepare('SELECT * FROM photos WHERE folderId = ?').all(folderId) as Photo[]
+
+    for (const photo of photos) {
+      try {
+        const filename = photo.url.replace('/uploads/', '')
+        const filepath = join(process.cwd(), 'public', 'uploads', filename)
+
+        if (existsSync(filepath)) {
+          await unlink(filepath)
+        }
+      }
+      catch (error) {
+        console.error('Ошибка удаления файла:', error)
+      }
+    }
+
+    const result = db.prepare('DELETE FROM photos WHERE folderId = ?').run(folderId)
+    return result.changes
   }
 }

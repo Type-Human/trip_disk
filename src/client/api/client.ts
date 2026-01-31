@@ -1,4 +1,4 @@
-const API_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3000/api'
+const API_URL = (import.meta as any).env?.VITE_API_URL || 'http://155.212.171.181/api'
 
 async function request<T>(
   method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH',
@@ -27,7 +27,6 @@ async function request<T>(
       headers,
       body,
       ...requestConfig,
-      credentials: 'include',
     })
 
     if (!response.ok) {

@@ -1,18 +1,31 @@
 import type { CreateFolderDto, Folder } from '../../client/types/trip'
-import { foldersStorage } from '../storage'
+import type { PhotoService } from './photoService'
+import { getDatabase } from '../database'
 
 export class FolderService {
-  private folders: Folder[] = []
+  private photoService?: PhotoService
+
+  setPhotoService(photoService: PhotoService): void {
+    this.photoService = photoService
+  }
 
   async initialize(): Promise<void> {
-    this.folders = await foldersStorage.load()
   }
 
   async getByTripId(tripId: string): Promise<Folder[]> {
-    return this.folders.filter(f => f.tripId === tripId)
+    const db = getDatabase().getDatabase()
+    const folders = db.prepare('SELECT * FROM folders WHERE tripId = ? ORDER BY createdAt DESC').all(tripId) as Folder[]
+    return folders
+  }
+
+  async getById(id: string): Promise<Folder | null> {
+    const db = getDatabase().getDatabase()
+    const folder = db.prepare('SELECT * FROM folders WHERE id = ?').get(id) as Folder | undefined
+    return folder || null
   }
 
   async create(folderData: CreateFolderDto): Promise<Folder> {
+    const db = getDatabase().getDatabase()
     const folder: Folder = {
       id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       tripId: folderData.tripId,
@@ -20,23 +33,44 @@ export class FolderService {
       createdAt: new Date().toISOString(),
     }
 
-    this.folders.push(folder)
-    await this.save()
+    db.prepare(`
+      INSERT INTO folders (id, tripId, name, createdAt)
+      VALUES (?, ?, ?, ?)
+    `).run(
+      folder.id,
+      folder.tripId,
+      folder.name,
+      folder.createdAt,
+    )
+
     return folder
   }
 
   async delete(id: string): Promise<boolean> {
-    const index = this.folders.findIndex(f => f.id === id)
-    if (index === -1) {
-      return false
+    const db = getDatabase().getDatabase()
+    if (this.photoService) {
+      const photos = await this.photoService.getByFolderId(id)
+      for (const photo of photos) {
+        await this.photoService.delete(photo.id)
+      }
     }
 
-    this.folders.splice(index, 1)
-    await this.save()
-    return true
+    const result = db.prepare('DELETE FROM folders WHERE id = ?').run(id)
+    return result.changes > 0
   }
 
-  private async save(): Promise<void> {
-    await foldersStorage.save(this.folders)
+  async update(id: string, name: string): Promise<Folder | null> {
+    const db = getDatabase().getDatabase()
+    const existing = await this.getById(id)
+    if (!existing) {
+      return null
+    }
+
+    db.prepare('UPDATE folders SET name = ? WHERE id = ?').run(name, id)
+
+    return {
+      ...existing,
+      name,
+    }
   }
 }

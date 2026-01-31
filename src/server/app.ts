@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
+import { getDatabase } from './database'
 import { createRoutes } from './routes'
 import { FolderService } from './services/folderService'
 import { PhotoService } from './services/photoService'
@@ -10,16 +11,26 @@ export async function createApp(): Promise<Hono> {
   const app = new Hono()
 
   app.use('/*', cors({
-    origin: '*',
-    allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowHeaders: ['Content-Type'],
+    origin: (origin) => {
+      const allowedOrigins = ['http://155.212.171.181', 'http://localhost:5173', 'http://localhost:3000']
+      if (origin && allowedOrigins.includes(origin)) {
+        return origin
+      }
+      return allowedOrigins[0]
+    },
+    allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowHeaders: ['Content-Type', 'Authorization'],
   }))
+
+  getDatabase()
 
   await initializeStorage()
 
   const tripService = new TripService()
   const photoService = new PhotoService()
   const folderService = new FolderService()
+
+  folderService.setPhotoService(photoService)
 
   await Promise.all([
     tripService.initialize(),
