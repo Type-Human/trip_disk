@@ -39,3 +39,7 @@ bun.lockb
 
 
 *.local
+
+*.db
+*.db-*
+!data/trip_disk.db

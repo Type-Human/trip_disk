@@ -7,3 +7,5 @@ data
 .env
 .git
 *.log
+*.db
+*.db-*

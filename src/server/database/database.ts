@@ -1,14 +1,26 @@
-import { Database } from 'bun:sqlite'
+import { existsSync, mkdirSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+
+const { Database } = require('bun:sqlite')
 
 export class DatabaseService {
-  private db: Database
+  private db: any
 
   constructor(dbPath?: string) {
-    const path = dbPath || '/app/data/trip_disk.db'
+    const defaultPath = join(process.cwd(), 'data', 'trip_disk.db')
+    const path = dbPath || defaultPath
+
+    const dir = dirname(path)
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true })
+    }
+
     this.db = new Database(path)
+
     this.db.run('PRAGMA journal_mode = WAL')
     this.db.run('PRAGMA synchronous = NORMAL')
     this.db.run('PRAGMA foreign_keys = ON')
+
     this.initializeTables()
   }
 
@@ -55,7 +67,7 @@ export class DatabaseService {
     this.db.run(`CREATE INDEX IF NOT EXISTS idx_folders_tripId ON folders(tripId)`)
   }
 
-  getDatabase(): Database {
+  getDatabase(): any {
     return this.db
   }
 

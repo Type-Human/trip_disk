@@ -9,6 +9,8 @@ export default antfu({
   rules: {
     'node/prefer-global/process': 'off',
     'node/prefer-global/buffer': 'off',
+    '@typescript-eslint/no-require-imports': 'off',
+
   },
 
   ignores: ['bun.lock', 'dist', 'node_modules'],

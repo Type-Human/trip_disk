@@ -1,3 +1,4 @@
+import { serveStatic } from '@hono/node-server/serve-static'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { getDatabase } from './database'
@@ -10,9 +11,11 @@ import { initializeStorage } from './storage'
 export async function createApp(): Promise<Hono> {
   const app = new Hono()
 
+  app.use('/uploads/*', serveStatic({ root: './public' }))
+
   app.use('/*', cors({
     origin: (origin) => {
-      const allowedOrigins = ['http://155.212.171.181', 'http://localhost:5173', 'http://localhost:3000']
+      const allowedOrigins = ['http://155.212.171.181', 'http://localhost:5174', 'http://localhost:3000']
       if (origin && allowedOrigins.includes(origin)) {
         return origin
       }
