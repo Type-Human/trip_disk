@@ -9,12 +9,6 @@
         </router-link>
       </div>
       <nav class="nav">
-        <!-- <router-link to="/trips" class="nav-link" active-class="active">
-          Поездки
-        </router-link> -->
-        <!-- <router-link to="/gallery" class="nav-link" active-class="active">
-          Создать
-        </router-link> -->
         <router-link to="" class="nav-link" active-class="active">
           <img src="/img/logo/profile-icon.svg" alt="" style="width: 30px;">
         </router-link>

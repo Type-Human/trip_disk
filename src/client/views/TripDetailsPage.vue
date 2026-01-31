@@ -7,6 +7,7 @@ import PhotoGallery from '../components/details/PhotoGallery.vue'
 import PhotoViewer from '../components/details/PhotoViewer.vue'
 import AddFolderModal from '../components/modals/AddFolderModal.vue'
 import BackBtn from '../components/ui/BackBtn.vue'
+import Icon from '../components/ui/Icon.vue'
 import PhotoUpload from '../components/upload/PhotoUpload.vue'
 
 const route = useRoute()
@@ -26,6 +27,8 @@ const isLoading = ref(false)
 const isUploading = ref(false)
 const showMobileMenu = ref(false)
 
+const selectionMode = ref(false)
+
 const filteredPhotos = computed(() => {
   if (activeFolder.value === 'all') {
     return photos.value
@@ -36,6 +39,14 @@ const filteredPhotos = computed(() => {
 const realFolders = computed(() => {
   return folders.value.filter(f => f.id !== 'all')
 })
+
+function startSelection() {
+  selectionMode.value = true
+}
+
+function cancelSelection() {
+  selectionMode.value = false
+}
 
 async function fetchTripData() {
   try {
@@ -90,7 +101,28 @@ async function handleCreateFolder(name: string) {
   }
 }
 
+async function handleDeletePhotos(ids: string[]) {
+  try {
+    await tripApi.deletePhotos(ids)
+    photos.value = photos.value.filter(p => !ids.includes(p.id))
+    cancelSelection()
+  }
+  catch (error) {
+    console.error('Ошибка удаления фото:', error)
+  }
+}
+
+async function handleDeleteFolder(folderId: string) {
+  await tripApi.deleteFolder(folderId)
+  folders.value = folders.value.filter(f => f.id !== folderId)
+  photos.value = photos.value.filter(p => p.folderId !== folderId)
+  if (activeFolder.value === folderId)
+    activeFolder.value = 'all'
+}
+
 function openPhotoViewer(index: number) {
+  if (selectionMode.value)
+    return
   currentPhotoIndex.value = index
   showPhotoViewer.value = true
 }
@@ -118,7 +150,16 @@ onMounted(() => {
           Добавить фото
         </button>
       </div>
-
+      <button
+        v-if="!selectionMode && filteredPhotos.length > 0"
+        class="manage-photos-btn"
+        :title="selectionMode ? 'Выйти из режима выбора' : 'Управление фотографиями'"
+        @click="startSelection"
+      >
+        <Icon :size="20" filled color="#666">
+          <path d="M6 19C6 20.1 6.9 21 8 21H16C17.1 21 18 20.1 18 19V7H6V19ZM19 4H15.5L14.5 3H9.5L8.5 4H5V6H19V4Z" />
+        </Icon>
+      </button>
       <div class="mobile-menu">
         <button class="mobile-menu-button" @click="showMobileMenu = !showMobileMenu">
           <span class="menu-dots">⋮</span>
@@ -140,28 +181,42 @@ onMounted(() => {
       </div>
     </div>
 
-    <div class="folders-tabs">
-      <div class="folders-scroll">
-        <button
-          v-for="folder in folders"
-          :key="folder.id"
-          class="folder-tab"
-          :class="{ active: activeFolder === folder.id }"
-          @click="activeFolder = folder.id"
-        >
-          <span class="folder-name">{{ folder.name }}</span>
-          <span v-if="activeFolder === folder.id" class="photo-count">
-            {{ filteredPhotos.length }}
-          </span>
-        </button>
+    <div class="folders-container">
+      <div class="folders-tabs">
+        <div class="folders-scroll">
+          <button
+            v-for="folder in folders"
+            :key="folder.id"
+            class="folder-tab"
+            :class="{ active: activeFolder === folder.id }"
+            @click="activeFolder = folder.id"
+          >
+            <span class="folder-name">{{ folder.name }}</span>
+            <span v-if="activeFolder === folder.id" class="photo-count">
+              {{ filteredPhotos.length }}
+            </span>
+            <button
+              v-if="folder.id !== 'all'"
+              type="button"
+              class="folder-tab-delete"
+              title="Удалить папку"
+              @click.stop="handleDeleteFolder(folder.id)"
+            >
+              ✕
+            </button>
+          </button>
+        </div>
       </div>
     </div>
 
     <PhotoGallery
       :photos="filteredPhotos"
       :folder-name="folders.find(f => f.id === activeFolder)?.name || 'Фото'"
+      :selection-mode="selectionMode"
       @upload="showUpload = true"
       @photo-click="openPhotoViewer"
+      @delete-photos="handleDeletePhotos"
+      @cancel-selection="cancelSelection"
     />
 
     <PhotoUpload
@@ -257,6 +312,224 @@ onMounted(() => {
     gap: 12px;
     align-items: center;
   }
+}
+
+.folders-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.manage-photos-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  margin-bottom: 2px;
+  height: 40px;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+
+  &:hover {
+    background: #f5f5f5;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  svg {
+    color: #666;
+  }
+
+  @media (min-width: 640px) {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+.folders-tabs {
+  flex: 1;
+  border-bottom: 1px solid #e5e7eb;
+  min-width: 0;
+}
+
+.folders-scroll {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #ccc transparent;
+
+  &::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: #ccc;
+    border-radius: 3px;
+  }
+
+  @media (min-width: 640px) {
+    gap: 8px;
+
+    &::-webkit-scrollbar {
+      height: 8px;
+    }
+  }
+}
+
+.folder-tab {
+  padding: 10px 14px;
+  padding-right: 5px;
+  background: #f3f4f6;
+  border: none;
+  border-radius: 8px 8px 0 0;
+  cursor: pointer;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+  font-size: 13px;
+  flex-shrink: 0;
+
+  @media (min-width: 375px) {
+    padding: 10px 16px;
+  }
+
+  @media (min-width: 640px) {
+    padding: 12px 20px;
+    font-size: 14px;
+    gap: 8px;
+  }
+
+  @media (min-width: 768px) {
+    padding: 12px 24px;
+  }
+
+  &:hover {
+    background: #e5e7eb;
+  }
+
+  &.active {
+    background: #6366f1;
+    color: white;
+  }
+
+  .folder-name {
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    @media (min-width: 375px) {
+      max-width: 120px;
+    }
+
+    @media (min-width: 640px) {
+      max-width: 150px;
+    }
+
+    @media (min-width: 768px) {
+      max-width: 200px;
+    }
+  }
+}
+
+.folder-tab-delete {
+  margin-left: 6px;
+  padding: 2px 6px;
+  font-size: 12px;
+  line-height: 1;
+  border: none;
+  color: white;
+  border-radius: 4px;
+  background-color: inherit;
+  cursor: pointer;
+}
+
+.photo-count {
+  font-size: 11px;
+  opacity: 0.8;
+  flex-shrink: 0;
+
+  @media (min-width: 640px) {
+    font-size: 12px;
+  }
+}
+
+.selection-toolbar {
+  background: white;
+  padding: 12px;
+  margin-bottom: 16px;
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.toolbar-info {
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #eee;
+}
+
+.selected-count {
+  font-size: 15px;
+  font-weight: 500;
+  color: #333;
+}
+
+.toolbar-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.toolbar-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.cancel-btn {
+  background: #f0f0f0;
+  color: #333;
 }
 
 .btn-primary,
@@ -396,122 +669,12 @@ onMounted(() => {
   }
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
 @keyframes slideUp {
   from {
     transform: translateY(100%);
   }
   to {
     transform: translateY(0);
-  }
-}
-
-.folders-tabs {
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.folders-scroll {
-  display: flex;
-  gap: 6px;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  padding-bottom: 2px;
-  scrollbar-width: thin;
-  scrollbar-color: #ccc transparent;
-
-  &::-webkit-scrollbar {
-    height: 6px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background-color: #ccc;
-    border-radius: 3px;
-  }
-
-  @media (min-width: 640px) {
-    gap: 8px;
-
-    &::-webkit-scrollbar {
-      height: 8px;
-    }
-  }
-}
-
-.folder-tab {
-  padding: 10px 14px;
-  background: #f3f4f6;
-  border: none;
-  border-radius: 8px 8px 0 0;
-  cursor: pointer;
-  white-space: nowrap;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  transition: all 0.2s;
-  font-size: 13px;
-  flex-shrink: 0;
-
-  @media (min-width: 375px) {
-    padding: 10px 16px;
-  }
-
-  @media (min-width: 640px) {
-    padding: 12px 20px;
-    font-size: 14px;
-    gap: 8px;
-  }
-
-  @media (min-width: 768px) {
-    padding: 12px 24px;
-  }
-
-  &:hover {
-    background: #e5e7eb;
-  }
-
-  &.active {
-    background: #6366f1;
-    color: white;
-  }
-
-  .folder-name {
-    max-width: 100px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-
-    @media (min-width: 375px) {
-      max-width: 120px;
-    }
-
-    @media (min-width: 640px) {
-      max-width: 150px;
-    }
-
-    @media (min-width: 768px) {
-      max-width: 200px;
-    }
-  }
-}
-
-.photo-count {
-  font-size: 11px;
-  opacity: 0.8;
-  flex-shrink: 0;
-
-  @media (min-width: 640px) {
-    font-size: 12px;
   }
 }
 
@@ -540,6 +703,15 @@ onMounted(() => {
     @media (min-width: 375px) {
       font-size: 20px;
     }
+  }
+
+  .folders-container {
+    gap: 8px;
+  }
+
+  .manage-photos-btn {
+    width: 36px;
+    height: 36px;
   }
 }
 </style>

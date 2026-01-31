@@ -3,13 +3,17 @@ import type { CreateTripDto, Trip } from '../types/trip'
 import { onMounted, ref } from 'vue'
 import { tripApi } from '../api'
 import CreateTripModal from '../components/modals/CreateTripModal.vue'
+import DeleteTripModal from '../components/modals/DeleteTripModal.vue'
 import TripCard from '../components/trips/TripCard.vue'
 import ViewSwitcher from '../components/ui/ViewSwitcher.vue'
 
 const trips = ref<Trip[]>([])
 const showCreateModal = ref(false)
+const showDeleteModal = ref(false)
+const tripToDelete = ref<Trip | null>(null)
 const isLoading = ref(false)
 const isCreating = ref(false)
+const isDeleting = ref(false)
 const viewType = ref<'grid' | 'list'>('list')
 
 async function fetchTrips() {
@@ -40,6 +44,37 @@ async function handleCreateTrip(data: CreateTripDto) {
   }
 }
 
+function openDeleteModal(trip: Trip) {
+  tripToDelete.value = trip
+  showDeleteModal.value = true
+}
+
+async function confirmDeleteTrip() {
+  if (!tripToDelete.value)
+    return
+
+  try {
+    isDeleting.value = true
+    await tripApi.delete(tripToDelete.value.id)
+    trips.value = trips.value.filter(t => t.id !== tripToDelete.value!.id)
+    showDeleteModal.value = false
+    tripToDelete.value = null
+  }
+  catch (error) {
+    console.error('Ошибка удаления поездки:', error)
+  }
+  finally {
+    isDeleting.value = false
+  }
+}
+
+function closeDeleteModal() {
+  if (!isDeleting.value) {
+    showDeleteModal.value = false
+    tripToDelete.value = null
+  }
+}
+
 onMounted(() => {
   fetchTrips()
 })
@@ -67,6 +102,9 @@ onMounted(() => {
       </div>
       <h3>У вас пока нет поездок</h3>
       <p>Создайте свою первую поездку!</p>
+      <button @click="showCreateModal = true">
+        Создать поездку
+      </button>
     </div>
 
     <div v-else :class="viewType === 'grid' ? 'trips-grid' : 'trips-list'">
@@ -75,9 +113,17 @@ onMounted(() => {
         :key="trip.id"
         :trip="trip"
         :view-type="viewType"
-        @click="$router.push(`/trips/${trip.id}`)"
+        @delete="openDeleteModal"
       />
     </div>
+
+    <DeleteTripModal
+      v-if="showDeleteModal && tripToDelete"
+      :trip="tripToDelete"
+      :loading="isDeleting"
+      @close="closeDeleteModal"
+      @confirm="confirmDeleteTrip"
+    />
 
     <CreateTripModal
       :show="showCreateModal"

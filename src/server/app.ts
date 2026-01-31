@@ -1,3 +1,4 @@
+import { join } from 'node:path'
 import { serveStatic } from '@hono/node-server/serve-static'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
@@ -11,7 +12,9 @@ import { initializeStorage } from './storage'
 export async function createApp(): Promise<Hono> {
   const app = new Hono()
 
-  app.use('/uploads/*', serveStatic({ root: './public' }))
+  app.use('/uploads/*', serveStatic({
+    root: join(process.cwd(), 'public'),
+  }))
 
   app.use('/*', cors({
     origin: (origin) => {

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { Photo, Trip } from '../../types/trip'
 import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { tripApi } from '../../api'
 import Icon from '../ui/Icon.vue'
 
@@ -8,6 +9,24 @@ const props = defineProps<{
   trip: Trip
   viewType?: 'grid' | 'list'
 }>()
+const emit = defineEmits<{
+  delete: [trip: Trip]
+}>()
+const router = useRouter()
+function goToTrip() {
+  router.push(`/trips/${props.trip.id}`)
+}
+
+function handleWrapperClick(e: Event) {
+  const target = e.target as HTMLElement
+  if (target.closest('.delete-badge')) {
+    e.preventDefault()
+    e.stopPropagation()
+    emit('delete', props.trip)
+    return
+  }
+  goToTrip()
+}
 
 const previewPhoto = ref<Photo | null>(null)
 const isLoading = ref(false)
@@ -31,7 +50,7 @@ const imageUrl = computed(() => {
       return props.trip.coverImage
     }
 
-    return `http://localhost:3000${props.trip.coverImage}`
+    return props.trip.coverImage ? `${props.trip.coverImage}` : ''
   }
 
   if (previewPhoto.value) {
@@ -39,7 +58,7 @@ const imageUrl = computed(() => {
       return previewPhoto.value.url
     }
 
-    return `http://localhost:3000${previewPhoto.value.url}`
+    return previewPhoto.value?.url ? `${previewPhoto.value.url}` : ''
   }
   return null
 })
@@ -66,10 +85,13 @@ onMounted(() => {
 </script>
 
 <template>
-  <router-link
-    :to="`/trips/${trip.id}`"
-    class="trip-link"
+  <div
+    class="trip-card-wrapper"
     :class="{ 'trip-link-grid': props.viewType === 'grid' }"
+    role="button"
+    tabindex="0"
+    @click="handleWrapperClick"
+    @keydown.enter="handleWrapperClick"
   >
     <article class="trip-card" :class="{ 'trip-card-grid': props.viewType === 'grid' }">
       <div class="trip-media">
@@ -81,11 +103,6 @@ onMounted(() => {
           <div class="placeholder-icon">
             ✈️
           </div>
-        </div>
-        <div class="delete-badge">
-          <Icon size="16" stroke="#ef4444">
-            <path data-v-943d8c11="" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
-          </Icon>
         </div>
         <div class="date-badge">
           {{ formatDate(trip.date) }}
@@ -112,14 +129,20 @@ onMounted(() => {
         </div>
       </div>
     </article>
-  </router-link>
+    <button type="button" class="delete-badge" title="Удалить путешествие">
+      <Icon size="16" stroke="#ef4444">
+        <path data-v-943d8c11="" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+      </Icon>
+    </button>
+  </div>
 </template>
 
 <style scoped lang="scss">
-.trip-link {
-  text-decoration: none;
-  color: inherit;
+.trip-card-wrapper {
+  position: relative;
   display: block;
+  height: 100%;
+  cursor: pointer;
 
   &:hover {
     .trip-card {
@@ -128,12 +151,8 @@ onMounted(() => {
     }
   }
 
-  &.trip-link-grid {
-    &:hover {
-      .trip-card {
-        transform: translateY(-4px);
-      }
-    }
+  &.trip-link-grid:hover .trip-card {
+    transform: translateY(-4px);
   }
 }
 
@@ -174,7 +193,7 @@ onMounted(() => {
       background: linear-gradient(to bottom, transparent 50%, rgba(0, 0, 0, 0.1));
     }
 
-    .trip-link:hover & img {
+    .trip-card-wrapper:hover & img {
       transform: scale(1.05);
     }
   }
@@ -198,6 +217,7 @@ onMounted(() => {
   position: absolute;
   top: 16px;
   right: 50px;
+  z-index: 1;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(4px);
   padding: 6px 12px;
@@ -212,9 +232,11 @@ onMounted(() => {
   position: absolute;
   top: 16px;
   right: 16px;
+  z-index: 2;
   width: 26px;
   height: 26px;
   background: white;
+  border: none;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -222,6 +244,8 @@ onMounted(() => {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   cursor: pointer;
   transition: background 0.2s;
+  padding: 0;
+  pointer-events: auto;
 
   &:hover {
     background: #fee2e2;

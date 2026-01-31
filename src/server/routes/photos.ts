@@ -11,27 +11,23 @@ export function createPhotoRoutes(photoService: PhotoService) {
       const folderId = formData.get('folderId') as string | null
 
       const files: File[] = []
+
       for (const [key, value] of formData.entries()) {
-        if (key === 'files' && value instanceof File) {
+        if (value instanceof File) {
           files.push(value)
         }
       }
 
-      if (!tripId || !files.length) {
-        return c.json({ error: 'Не указан tripId или файлы' }, 400)
+      if (files.length === 0) {
+        return c.json({ error: 'No files provided' }, 400)
       }
 
-      const uploadedPhotos = await photoService.upload(
-        tripId,
-        files,
-        folderId || undefined,
-      )
-
+      const uploadedPhotos = await photoService.upload(tripId, files, folderId || undefined)
       return c.json(uploadedPhotos, 201)
     }
     catch (error) {
-      console.error('Ошибка загрузки фото:', error)
-      return c.json({ error: 'Ошибка загрузки фото' }, 500)
+      console.error('Upload error:', error)
+      return c.json({ error: 'Failed to upload photos' }, 500)
     }
   })
 
@@ -46,6 +42,21 @@ export function createPhotoRoutes(photoService: PhotoService) {
       else {
         return c.json({ error: 'Фото не найдено' }, 404)
       }
+    }
+    catch (error) {
+      console.error('Ошибка удаления фото:', error)
+      return c.json({ error: 'Ошибка удаления фото' }, 500)
+    }
+  })
+
+  app.post('/delete-batch', async (c) => {
+    try {
+      const body = await c.req.json<{ ids: string[] }>()
+      if (!body.ids || !Array.isArray(body.ids) || body.ids.length === 0) {
+        return c.json({ error: 'Не указаны id фото' }, 400)
+      }
+      const deleted = await photoService.deleteMany(body.ids)
+      return c.json({ deleted }, 200)
     }
     catch (error) {
       console.error('Ошибка удаления фото:', error)

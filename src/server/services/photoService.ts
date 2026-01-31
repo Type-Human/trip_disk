@@ -61,6 +61,16 @@ export class PhotoService {
     return uploadedPhotos
   }
 
+  async deleteMany(ids: string[]): Promise<number> {
+    let count = 0
+    for (const id of ids) {
+      const ok = await this.delete(id)
+      if (ok)
+        count += 1
+    }
+    return count
+  }
+
   async delete(id: string): Promise<boolean> {
     const db = getDatabase().getDatabase()
     const photo = db.prepare('SELECT * FROM photos WHERE id = ?').get(id) as Photo | undefined

@@ -59,6 +59,10 @@ export const tripApi = {
     return realApi.delete<void>(`/photos/${id}`)
   },
 
+  async deletePhotos(ids: string[]): Promise<{ deleted: number }> {
+    return realApi.post<{ deleted: number }>('/photos/delete-batch', { ids })
+  },
+
   async getFoldersByTripId(tripId: string): Promise<Folder[]> {
     return realApi.get<Folder[]>(`/trips/${tripId}/folders`).catch(() => [])
   },

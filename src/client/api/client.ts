@@ -1,4 +1,4 @@
-const API_URL = (import.meta as any).env?.VITE_API_URL || 'http://155.212.171.181/api'
+const API_URL = (import.meta as any).env?.VITE_API_URL || '/api'
 
 async function request<T>(
   method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH',
@@ -63,7 +63,6 @@ async function request<T>(
 }
 
 export const api = {
-
   get: <T>(url: string, config?: RequestInit): Promise<T> =>
     request<T>('GET', url, null, config),
 
@@ -78,6 +77,7 @@ export const api = {
 
   patch: <T>(url: string, data?: any, config?: RequestInit): Promise<T> =>
     request<T>('PATCH', url, data, config),
+
   upload: <T>(url: string, formData: FormData, config?: RequestInit): Promise<T> =>
     request<T>('POST', url, formData, config),
 }
