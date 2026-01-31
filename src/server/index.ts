@@ -19,3 +19,21 @@ async function main() {
 }
 
 main()
+app.get('/health', (c) => {
+  const db = getDatabase().getDatabase()
+  const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all()
+  return c.json({ 
+    status: 'ok', 
+    tables: tables.map(t => t.name),
+    timestamp: new Date().toISOString() 
+  })
+})
+app.get('/health', (c) => {
+  const db = getDatabase().getDatabase()
+  const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all()
+  return c.json({ 
+    status: 'ok', 
+    tables: tables.map(t => t.name),
+    timestamp: new Date().toISOString() 
+  })
+})
