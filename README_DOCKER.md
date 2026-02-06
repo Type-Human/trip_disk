@@ -1,34 +1,34 @@
 # Docker Setup для Trip Disk
 
-## Установка зависимостей
+Фронтенд и бэкенд собираются в отдельные образы и запускаются через docker-compose.
 
-Перед сборкой Docker образа убедитесь, что установлены все зависимости:
+## Сборка и запуск
 
-```bash
-npm install
-```
-
-## Сборка и запуск с Docker Compose
-
-### Сборка образа
+### Сборка образов
 
 ```bash
 docker-compose build
 ```
 
-### Запуск контейнера
+### Запуск всех сервисов
 
 ```bash
 docker-compose up -d
 ```
 
+Приложение будет доступно:
+- **Фронтенд**: http://localhost (порт 80)
+- **API**: http://localhost:3000/api
+
 ### Просмотр логов
 
 ```bash
+docker-compose logs -f
+docker-compose logs -f frontend
 docker-compose logs -f backend
 ```
 
-### Остановка контейнера
+### Остановка
 
 ```bash
 docker-compose down
@@ -59,7 +59,7 @@ docker-compose down
 ## Volumes
 
 - `./data` - директория с базой данных SQLite
-- `./public/uploads` - директория с загруженными фотографиями
+- `./uploads` - директория с загруженными фотографиями
 
 ## API
 

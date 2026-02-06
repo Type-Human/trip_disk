@@ -43,6 +43,3 @@ bun.lockb
 *.db
 *.db-*
 !data/trip_disk.db
-uploads/
-public/uploads/
-
