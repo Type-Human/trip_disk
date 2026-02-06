@@ -64,8 +64,6 @@ function handleTouchStart(e: TouchEvent, index: number) {
   touchStartY.value = e.touches[0].clientY
   touchMoved.value = false
   activeTouchIndex.value = index
-  
-  e.preventDefault()
 }
 
 function handleTouchMove(e: TouchEvent) {
@@ -75,7 +73,7 @@ function handleTouchMove(e: TouchEvent) {
     const diffX = Math.abs(currentX - touchStartX.value)
     const diffY = Math.abs(currentY - touchStartY.value)
     
-    if (diffX > 5 || diffY > 5) {
+    if (diffX > 10 || diffY > 10) {
       touchMoved.value = true
     }
   }
@@ -85,12 +83,16 @@ function handleTouchEnd(e: TouchEvent, index: number) {
   const touchEndTime = Date.now()
   const timeDiff = touchEndTime - touchStartTime.value
   
-  if (!touchMoved.value && timeDiff < 300 && activeTouchIndex.value === index) {
+  if (!touchMoved.value && timeDiff > 50 && timeDiff < 300 && activeTouchIndex.value === index) {
     handlePhotoClick(index)
   }
   
   activeTouchIndex.value = null
   touchMoved.value = false
+}
+
+function handleClick(index: number) {
+  handlePhotoClick(index)
 }
 
 function handlePhotoClick(index: number) {
@@ -152,7 +154,7 @@ function handleCancel() {
           @click="deleteSelected"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <path d="M6 19C6 20.1 6.9 21 8 21H16C17.1 21 18 20.1 18 19V7H6V19ZM19 4H15.5L14.5 3H9.5L8.5 4H5V6H19V4Z" fill="currentColor" />
+            <path d="M6 19C6 20.1 6.9 21 8 21H16C17.1 21 18 20.1 18 19V7H6V19ZM19 4H15.5L14.5 3H9.5L8.5 4H5V6H19V4Z" fill="#FF0000" />
           </svg>
           Удалить ({{ selectedCount }})
         </button>
@@ -187,7 +189,7 @@ function handleCancel() {
         @touchstart="(e) => handleTouchStart(e, index)"
         @touchmove="handleTouchMove"
         @touchend="(e) => handleTouchEnd(e, index)"
-        @click="() => handlePhotoClick(index)"
+        @click="() => handleClick(index)"
       >
 
         <div v-if="selectionMode" class="photo-checkbox">
@@ -342,7 +344,6 @@ function handleCancel() {
   -webkit-tap-highlight-color: transparent;
   user-select: none;
   -webkit-user-select: none;
-  touch-action: pan-y;
 
   &:hover {
     transform: translateY(-2px);
