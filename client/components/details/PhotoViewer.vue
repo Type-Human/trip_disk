@@ -118,6 +118,11 @@ onUnmounted(() => {
 <template>
   <div class="MediaViewer">
     <div class="media-viewer-header">
+
+      <div v-if="!isMobile" class="photo-counter">
+        {{ currentIndex + 1 }} / {{ photos.length }}
+      </div>
+
       <button class="close-button" @click="emit('close')" aria-label="Close">
         <Icon class="close-icon" :size="20" :color="isMobile ? '#fff' : 'currentColor'" :filled="true">
           <path
@@ -125,19 +130,13 @@ onUnmounted(() => {
         </Icon>
       </button>
 
-      <div v-if="!isMobile" class="photo-counter">
-        {{ currentIndex + 1 }} / {{ photos.length }}
-      </div>
+
     </div>
 
     <div class="MediaViewerSlides" @touchstart="handleTouchStart" @touchend="handleTouchEnd"
       @click="handleClickOutside">
       <div class="current-image-container">
-        <img 
-          :src="currentPhoto?.url" 
-          :alt="currentPhoto?.filename" 
-          class="current-image" 
-          draggable="false"
+        <img :src="currentPhoto?.url" :alt="currentPhoto?.filename" class="current-image" draggable="false"
           @click="handleImageClick" />
       </div>
 
@@ -172,7 +171,8 @@ onUnmounted(() => {
 
 .media-viewer-header {
   position: absolute;
-  top: 0;
+  top: 10px;
+  width: 100%;
   right: 0;
   height: 56px;
   background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), transparent);
@@ -180,6 +180,11 @@ onUnmounted(() => {
   align-items: center;
   padding: 0 16px;
   z-index: 10;
+}
+
+.photo-counter{
+  margin-right: auto;
+  color: white;
 }
 
 .close-button {
@@ -251,6 +256,7 @@ onUnmounted(() => {
   .media-viewer-header {
     height: 44px;
     padding: 0 12px;
+    justify-content: end;
   }
 
   .close-button {
@@ -332,6 +338,7 @@ onUnmounted(() => {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }

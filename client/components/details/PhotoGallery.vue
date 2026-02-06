@@ -27,7 +27,11 @@ function getPhotoUrl(photo: Photo): string {
 
 const selectedIds = ref<Set<string>>(new Set())
 const showToolbar = ref(false)
-
+const touchStartTime = ref(0)
+const touchStartY = ref(0)
+const touchStartX = ref(0)
+const touchMoved = ref(false)
+const activeTouchIndex = ref<number | null>(null)
 
 const selectedCount = computed(() => selectedIds.value.size)
 
@@ -54,11 +58,47 @@ function isSelected(photoId: string) {
   return selectedIds.value.has(photoId)
 }
 
+function handleTouchStart(e: TouchEvent, index: number) {
+  touchStartTime.value = Date.now()
+  touchStartX.value = e.touches[0].clientX
+  touchStartY.value = e.touches[0].clientY
+  touchMoved.value = false
+  activeTouchIndex.value = index
+  
+  e.preventDefault()
+}
+
+function handleTouchMove(e: TouchEvent) {
+  if (activeTouchIndex.value !== null && !touchMoved.value) {
+    const currentX = e.touches[0].clientX
+    const currentY = e.touches[0].clientY
+    const diffX = Math.abs(currentX - touchStartX.value)
+    const diffY = Math.abs(currentY - touchStartY.value)
+    
+    if (diffX > 5 || diffY > 5) {
+      touchMoved.value = true
+    }
+  }
+}
+
+function handleTouchEnd(e: TouchEvent, index: number) {
+  const touchEndTime = Date.now()
+  const timeDiff = touchEndTime - touchStartTime.value
+  
+  if (!touchMoved.value && timeDiff < 300 && activeTouchIndex.value === index) {
+    handlePhotoClick(index)
+  }
+  
+  activeTouchIndex.value = null
+  touchMoved.value = false
+}
+
 function handlePhotoClick(index: number) {
-  if (props.selectionMode)
+  if (props.selectionMode) {
     toggleSelect(props.photos[index].id)
-  else
+  } else {
     emit('photoClick', index)
+  }
 }
 
 function deleteSelected() {
@@ -144,9 +184,10 @@ function handleCancel() {
         :key="photo.id"
         class="photo-item"
         :class="{ selected: selectionMode && isSelected(photo.id) }"
-        @click="handlePhotoClick(index)"
-        @touchstart="(e) => { if (selectionMode) e.preventDefault() }"
-        @touchend="(e) => { if (selectionMode) e.preventDefault(); handlePhotoClick(index) }"
+        @touchstart="(e) => handleTouchStart(e, index)"
+        @touchmove="handleTouchMove"
+        @touchend="(e) => handleTouchEnd(e, index)"
+        @click="() => handlePhotoClick(index)"
       >
 
         <div v-if="selectionMode" class="photo-checkbox">
@@ -298,6 +339,10 @@ function handleCancel() {
   cursor: pointer;
   transition: all 0.2s;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: pan-y;
 
   &:hover {
     transform: translateY(-2px);
@@ -362,6 +407,7 @@ function handleCancel() {
   height: 160px;
   object-fit: cover;
   display: block;
+  pointer-events: none;
 }
 
 @media (max-width: 768px) {

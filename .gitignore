@@ -42,8 +42,10 @@ bun.lockb
 
 *.db
 *.db-*
-!data/trip_disk.db
 # Uploads
 uploads/
 public/uploads/
+data/*.db*
+data/
+!data/.gitkeep  # если нужно сохранить пустую папку
 

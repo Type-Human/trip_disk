@@ -2,7 +2,7 @@
 import type { Photo, Trip } from '../../types/trip'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { tripApi } from '../../api'
+import { tripApi } from '@/api'
 import Icon from '../ui/Icon.vue'
 
 const props = defineProps<{
@@ -85,14 +85,8 @@ onMounted(() => {
 </script>
 
 <template>
-  <div
-    class="trip-card-wrapper"
-    :class="{ 'trip-link-grid': props.viewType === 'grid' }"
-    role="button"
-    tabindex="0"
-    @click="handleWrapperClick"
-    @keydown.enter="handleWrapperClick"
-  >
+  <div class="trip-card-wrapper" :class="{ 'trip-link-grid': props.viewType === 'grid' }" role="button" tabindex="0"
+    @click="handleWrapperClick" @keydown.enter="handleWrapperClick">
     <article class="trip-card" :class="{ 'trip-card-grid': props.viewType === 'grid' }">
       <div class="trip-media">
         <div v-if="imageUrl" class="trip-image">

@@ -2,7 +2,7 @@
 import type { Folder, Photo, Trip } from '../types/trip'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { tripApi } from '../api'
+import { tripApi } from '@/api'
 import PhotoGallery from '../components/details/PhotoGallery.vue'
 import PhotoViewer from '../components/details/PhotoViewer.vue'
 import AddFolderModal from '../components/modals/AddFolderModal.vue'
@@ -185,7 +185,7 @@ onMounted(() => {
       </div>
       <button v-if="!selectionMode && filteredPhotos.length > 0" class="manage-photos-btn"
         :title="selectionMode ? 'Выйти из режима выбора' : 'Управление фотографиями'" @click="startSelection">
-        <Icon :size="20" filled color="#666">
+        <Icon :size="20" filled color="#FF0000">
           <path d="M6 19C6 20.1 6.9 21 8 21H16C17.1 21 18 20.1 18 19V7H6V19ZM19 4H15.5L14.5 3H9.5L8.5 4H5V6H19V4Z" />
         </Icon>
       </button>
@@ -323,7 +323,6 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   width: 40px;
-  margin-bottom: 2px;
   height: 40px;
   background: white;
   border: 1px solid #e0e0e0;
@@ -334,7 +333,7 @@ onMounted(() => {
   flex-shrink: 0;
 
   &:hover {
-    background: #f5f5f5;
+    
     transform: translateY(-1px);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   }
@@ -364,21 +363,21 @@ onMounted(() => {
   gap: 6px;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: none; // Для Firefox
-  -ms-overflow-style: none; // Для IE и Edge
+  scrollbar-width: none; 
+  -ms-overflow-style: none; 
 
-  // Скрываем scrollbar для WebKit браузеров
+ 
   &::-webkit-scrollbar {
-    display: none; // Скрываем полностью
+    display: none;
     width: 0;
     height: 0;
     background: transparent;
   }
 
-  // Альтернативный вариант - оставляем возможность скролла, но скрываем полосу
+  
   & {
-    scrollbar-width: none; // Firefox
-    -ms-overflow-style: none; // IE 10+
+    scrollbar-width: none; 
+    -ms-overflow-style: none
   }
 
 
@@ -612,7 +611,7 @@ onMounted(() => {
   justify-content: center;
   width: 40px;
   height: 40px;
-  background: #f3f4f6;
+  background: white;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   cursor: pointer;
@@ -731,9 +730,6 @@ onMounted(() => {
     gap: 8px;
   }
 
-  .manage-photos-btn {
-    width: 36px;
-    height: 36px;
-  }
+
 }
 </style>

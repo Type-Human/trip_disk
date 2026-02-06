@@ -11,6 +11,7 @@ import { initializeStorage } from "../storage";
 
 export async function createApp(): Promise<Hono> {
   const app = new Hono();
+  
 
   app.use(
     "/uploads/*",
@@ -37,14 +38,6 @@ export async function createApp(): Promise<Hono> {
       },
       allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
       allowHeaders: ["Content-Type", "Authorization"],
-    }),
-  );
-
-  app.get("/", (c) => c.text("Trip Disk API"));
-  app.get("/api/index.ts", (c) =>
-    c.json({
-      message: "API endpoint, not file",
-      endpoints: ["/api/health", "/api/trips"],
     }),
   );
 

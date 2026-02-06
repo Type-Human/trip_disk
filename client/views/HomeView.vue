@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { CreateTripDto, Trip } from '../types/trip'
 import { onMounted, ref } from 'vue'
-import { tripApi } from '../api'
+import { tripApi } from '@/api'
 import CreateTripModal from '../components/modals/CreateTripModal.vue'
 import DeleteModal from '../components/modals/DeleteModal.vue'
 import TripCard from '../components/trips/TripCard.vue'
