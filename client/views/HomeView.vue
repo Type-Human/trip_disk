@@ -3,7 +3,7 @@ import type { CreateTripDto, Trip } from '../types/trip'
 import { onMounted, ref } from 'vue'
 import { tripApi } from '../api'
 import CreateTripModal from '../components/modals/CreateTripModal.vue'
-import DeleteTripModal from '../components/modals/DeleteTripModal.vue'
+import DeleteModal from '../components/modals/DeleteModal.vue'
 import TripCard from '../components/trips/TripCard.vue'
 import ViewSwitcher from '../components/ui/ViewSwitcher.vue'
 
@@ -93,7 +93,7 @@ onMounted(() => {
     </div>
 
     <div v-if="isLoading" class="loading">
-      Загрузка...
+   
     </div>
 
     <div v-else-if="trips.length === 0" class="empty-state">
@@ -117,9 +117,8 @@ onMounted(() => {
       />
     </div>
 
-    <DeleteTripModal
+    <DeleteModal
       v-if="showDeleteModal && tripToDelete"
-      :trip="tripToDelete"
       :loading="isDeleting"
       @close="closeDeleteModal"
       @confirm="confirmDeleteTrip"
@@ -222,9 +221,29 @@ onMounted(() => {
 }
 
 .loading {
-  text-align: center;
-  padding: 40px;
-  color: #6b7280;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(59, 130, 246, 0.1);
+    border-top: 3px solid #3b82f6;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 @media (min-width: 640px) {

@@ -9,6 +9,8 @@ import AddFolderModal from '../components/modals/AddFolderModal.vue'
 import BackBtn from '../components/ui/BackBtn.vue'
 import Icon from '../components/ui/Icon.vue'
 import PhotoUpload from '../components/upload/PhotoUpload.vue'
+import DeleteModal from '../components/modals/DeleteModal.vue'
+
 
 const route = useRoute()
 const tripId = route.params.id as string
@@ -26,6 +28,9 @@ const currentPhotoIndex = ref(0)
 const isLoading = ref(false)
 const isUploading = ref(false)
 const showMobileMenu = ref(false)
+const showDeleteModal = ref(false)
+const folderIdDelete = ref()
+const isDeleting = ref(false)
 
 const selectionMode = ref(false)
 
@@ -113,11 +118,39 @@ async function handleDeletePhotos(ids: string[]) {
 }
 
 async function handleDeleteFolder(folderId: string) {
-  await tripApi.deleteFolder(folderId)
-  folders.value = folders.value.filter(f => f.id !== folderId)
-  photos.value = photos.value.filter(p => p.folderId !== folderId)
-  if (activeFolder.value === folderId)
-    activeFolder.value = 'all'
+  showDeleteModal.value = true
+  folderIdDelete.value = folderId
+
+}
+
+async function confirmDeleteModal() {
+  if (!folderIdDelete.value) return
+
+  try {
+    isDeleting.value = true
+    await tripApi.deleteFolder(folderIdDelete.value)
+    folders.value = folders.value.filter(f => f.id !== folderIdDelete.value)
+    photos.value = photos.value.filter(p => p.folderId !== folderIdDelete.value)
+
+    showDeleteModal.value = false
+    folderIdDelete.value = false
+    if (activeFolder.value === folderIdDelete.value)
+      activeFolder.value = 'all'
+  } catch (e) {
+    isDeleting.value = false
+    console.error(e)
+  } finally {
+    isDeleting.value = false
+  }
+
+}
+
+function closeDeleteModal() {
+  if (!isDeleting.value) {
+    showDeleteModal.value = false
+    folderIdDelete.value = false
+  }
+
 }
 
 function openPhotoViewer(index: number) {
@@ -150,12 +183,8 @@ onMounted(() => {
           Добавить фото
         </button>
       </div>
-      <button
-        v-if="!selectionMode && filteredPhotos.length > 0"
-        class="manage-photos-btn"
-        :title="selectionMode ? 'Выйти из режима выбора' : 'Управление фотографиями'"
-        @click="startSelection"
-      >
+      <button v-if="!selectionMode && filteredPhotos.length > 0" class="manage-photos-btn"
+        :title="selectionMode ? 'Выйти из режима выбора' : 'Управление фотографиями'" @click="startSelection">
         <Icon :size="20" filled color="#666">
           <path d="M6 19C6 20.1 6.9 21 8 21H16C17.1 21 18 20.1 18 19V7H6V19ZM19 4H15.5L14.5 3H9.5L8.5 4H5V6H19V4Z" />
         </Icon>
@@ -184,24 +213,12 @@ onMounted(() => {
     <div class="folders-container">
       <div class="folders-tabs">
         <div class="folders-scroll">
-          <button
-            v-for="folder in folders"
-            :key="folder.id"
-            class="folder-tab"
-            :class="{ active: activeFolder === folder.id }"
-            @click="activeFolder = folder.id"
-          >
+          <button v-for="folder in folders" :key="folder.id" class="folder-tab"
+            :class="{ active: activeFolder === folder.id }" @click="activeFolder = folder.id">
             <span class="folder-name">{{ folder.name }}</span>
-            <span v-if="activeFolder === folder.id" class="photo-count">
-              {{ filteredPhotos.length }}
-            </span>
-            <button
-              v-if="folder.id !== 'all'"
-              type="button"
-              class="folder-tab-delete"
-              title="Удалить папку"
-              @click.stop="handleDeleteFolder(folder.id)"
-            >
+
+            <button v-if="folder.id !== 'all'" type="button" class="folder-tab-delete" title="Удалить папку"
+              @click.stop="handleDeleteFolder(folder.id)">
               ✕
             </button>
           </button>
@@ -209,42 +226,22 @@ onMounted(() => {
       </div>
     </div>
 
-    <PhotoGallery
-      :photos="filteredPhotos"
-      :folder-name="folders.find(f => f.id === activeFolder)?.name || 'Фото'"
-      :selection-mode="selectionMode"
-      @upload="showUpload = true"
-      @photo-click="openPhotoViewer"
-      @delete-photos="handleDeletePhotos"
-      @cancel-selection="cancelSelection"
-    />
+    <PhotoGallery :photos="filteredPhotos" :folder-name="folders.find(f => f.id === activeFolder)?.name || 'Фото'"
+      :selection-mode="selectionMode" @upload="showUpload = true" @photo-click="openPhotoViewer"
+      @delete-photos="handleDeletePhotos" @cancel-selection="cancelSelection" />
 
-    <PhotoUpload
-      v-if="showUpload"
-      :folders="realFolders"
-      :selected-folder-id="activeFolder !== 'all' ? activeFolder : null"
-      @close="showUpload = false"
-      @upload="handlePhotoUpload"
-    />
+    <PhotoUpload v-if="showUpload" :folders="realFolders"
+      :selected-folder-id="activeFolder !== 'all' ? activeFolder : null" @close="showUpload = false"
+      @upload="handlePhotoUpload" />
 
-    <AddFolderModal
-      v-if="showCreateFolder"
-      @close="showCreateFolder = false"
-      @create="handleCreateFolder"
-    />
+    <AddFolderModal v-if="showCreateFolder" @close="showCreateFolder = false" @create="handleCreateFolder" />
 
-    <PhotoViewer
-      v-if="showPhotoViewer"
-      :photos="filteredPhotos"
-      :current-index="currentPhotoIndex"
-      :show="showPhotoViewer"
-      @close="showPhotoViewer = false"
-      @update:current-index="currentPhotoIndex = $event"
-    />
+    <PhotoViewer v-if="showPhotoViewer" :photos="filteredPhotos" :current-index="currentPhotoIndex"
+      :show="showPhotoViewer" @close="showPhotoViewer = false" @update:current-index="currentPhotoIndex = $event" />
 
-    <div v-if="isLoading" class="loading">
-      Загрузка...
-    </div>
+    <DeleteModal v-if="folderIdDelete && showDeleteModal" @confirm="confirmDeleteModal" :loading="isDeleting"
+      @close="closeDeleteModal()" />
+
   </div>
 </template>
 
@@ -367,30 +364,63 @@ onMounted(() => {
   gap: 6px;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin;
-  scrollbar-color: #ccc transparent;
+  scrollbar-width: none; // Для Firefox
+  -ms-overflow-style: none; // Для IE и Edge
 
+  // Скрываем scrollbar для WebKit браузеров
   &::-webkit-scrollbar {
-    height: 6px;
-  }
-
-  &::-webkit-scrollbar-track {
+    display: none; // Скрываем полностью
+    width: 0;
+    height: 0;
     background: transparent;
   }
 
-  &::-webkit-scrollbar-thumb {
-    background-color: #ccc;
-    border-radius: 3px;
+  // Альтернативный вариант - оставляем возможность скролла, но скрываем полосу
+  & {
+    scrollbar-width: none; // Firefox
+    -ms-overflow-style: none; // IE 10+
   }
+
+
+  @media (max-width: 639px) {
+    &::-webkit-scrollbar {
+      display: none;
+    }
+
+
+    -webkit-overflow-scrolling: touch;
+
+
+
+  }
+
 
   @media (min-width: 640px) {
     gap: 8px;
 
+
     &::-webkit-scrollbar {
+      display: block;
       height: 8px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background-color: #ccc;
+      border-radius: 3px;
+    }
+
+    &.hide-on-desktop {
+      &::-webkit-scrollbar {
+        display: none;
+      }
     }
   }
 }
+
 
 .folder-tab {
   padding: 10px 14px;
@@ -451,7 +481,7 @@ onMounted(() => {
 
 .folder-tab-delete {
   margin-left: 6px;
-  padding: 2px 6px;
+  padding: 0px;
   font-size: 12px;
   line-height: 1;
   border: none;
@@ -459,16 +489,6 @@ onMounted(() => {
   border-radius: 4px;
   background-color: inherit;
   cursor: pointer;
-}
-
-.photo-count {
-  font-size: 11px;
-  opacity: 0.8;
-  flex-shrink: 0;
-
-  @media (min-width: 640px) {
-    font-size: 12px;
-  }
 }
 
 .selection-toolbar {
@@ -486,6 +506,7 @@ onMounted(() => {
     opacity: 0;
     transform: translateY(-10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -673,6 +694,7 @@ onMounted(() => {
   from {
     transform: translateY(100%);
   }
+
   to {
     transform: translateY(0);
   }

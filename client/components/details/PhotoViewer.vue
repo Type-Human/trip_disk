@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import type { Photo } from '../../types/trip'
-import { computed, onMounted, onUnmounted } from 'vue'
+import { computed, onMounted, ref, onUnmounted } from 'vue'
+import Icon from '../ui/Icon.vue';
 
 const props = defineProps<{
   photos: Photo[]
   currentIndex: number
-  show: boolean
 }>()
 
 const emit = defineEmits<{
@@ -13,14 +13,71 @@ const emit = defineEmits<{
   'update:currentIndex': [index: number]
 }>()
 
-const currentPhoto = computed(() => {
-  return props.photos[props.currentIndex]
-})
+const currentPhoto = computed(() => props.photos[props.currentIndex])
+const touchStartX = ref(0)
+const isMobile = ref(false)
+
+
+const lastTapTime = ref(0)
+let tapCount = 0
+let tapTimeout: number | null = null
+
+function checkMobile() {
+  isMobile.value = window.innerWidth <= 768
+}
+
+function handleTouchStart(e: TouchEvent) {
+  touchStartX.value = e.touches[0].clientX
+}
+
+function handleTouchEnd(e: TouchEvent) {
+  const touchEndX = e.changedTouches[0].clientX
+  const diff = touchStartX.value - touchEndX
+
+  if (Math.abs(diff) > 50) {
+    if (diff > 0) {
+      nextPhoto()
+    } else {
+      previousPhoto()
+    }
+  }
+}
+
+function handleImageClick(e: MouseEvent) {
+  if (!isMobile.value) return
+
+  const now = Date.now()
+  const timeDiff = now - lastTapTime.value
+
+  tapCount++
+
+  if (tapCount === 1) {
+    lastTapTime.value = now
+
+    tapTimeout = setTimeout(() => {
+      tapCount = 0
+    }, 300)
+  } else if (tapCount === 2 && timeDiff < 300) {
+    if (tapTimeout) {
+      clearTimeout(tapTimeout)
+      tapTimeout = null
+    }
+    tapCount = 0
+    previousPhoto()
+  }
+}
+
+function previousPhoto() {
+  const newIndex = props.currentIndex === 0 ? props.photos.length - 1 : props.currentIndex - 1
+  emit('update:currentIndex', newIndex)
+}
+
+function nextPhoto() {
+  const newIndex = props.currentIndex === props.photos.length - 1 ? 0 : props.currentIndex + 1
+  emit('update:currentIndex', newIndex)
+}
 
 function handleKeydown(e: KeyboardEvent) {
-  if (!props.show)
-    return
-
   switch (e.key) {
     case 'Escape':
       emit('close')
@@ -34,213 +91,241 @@ function handleKeydown(e: KeyboardEvent) {
   }
 }
 
-function previousPhoto() {
-  const newIndex = props.currentIndex === 0
-    ? props.photos.length - 1
-    : props.currentIndex - 1
-  emit('update:currentIndex', newIndex)
-}
-
-function nextPhoto() {
-  const newIndex = props.currentIndex === props.photos.length - 1
-    ? 0
-    : props.currentIndex + 1
-  emit('update:currentIndex', newIndex)
-}
-
 function handleClickOutside(e: MouseEvent) {
   const target = e.target as HTMLElement
-  if (target.classList.contains('photo-viewer-overlay')) {
+  if (target.classList.contains('MediaViewerSlides') || target.classList.contains('current-image-container')) {
     emit('close')
   }
 }
 
 onMounted(() => {
+  checkMobile()
+  window.addEventListener('resize', checkMobile)
   document.addEventListener('keydown', handleKeydown)
+  document.body.classList.add('no-scroll')
 })
 
 onUnmounted(() => {
+  window.removeEventListener('resize', checkMobile)
   document.removeEventListener('keydown', handleKeydown)
+  document.body.classList.remove('no-scroll')
+  if (tapTimeout) {
+    clearTimeout(tapTimeout)
+  }
 })
 </script>
 
 <template>
-  <div
-    v-if="show"
-    class="photo-viewer-overlay"
-    @click="handleClickOutside"
-  >
-    <div class="photo-viewer">
-      <button class="close-btn" @click="emit('close')">
-        ✕
+  <div class="MediaViewer">
+    <div class="media-viewer-header">
+      <button class="close-button" @click="emit('close')" aria-label="Close">
+        <Icon class="close-icon" :size="20" :color="isMobile ? '#fff' : 'currentColor'" :filled="true">
+          <path
+            d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+        </Icon>
       </button>
 
-      <div class="photo-container">
-        <button class="nav-btn prev-btn" @click="previousPhoto">
-          ←
-        </button>
+      <div v-if="!isMobile" class="photo-counter">
+        {{ currentIndex + 1 }} / {{ photos.length }}
+      </div>
+    </div>
 
-        <div class="photo-wrapper">
-          <img
-            :src="currentPhoto?.url"
-            :alt="currentPhoto?.filename"
-            class="full-photo"
-          >
-        </div>
-
-        <button class="nav-btn next-btn" @click="nextPhoto">
-          →
-        </button>
+    <div class="MediaViewerSlides" @touchstart="handleTouchStart" @touchend="handleTouchEnd"
+      @click="handleClickOutside">
+      <div class="current-image-container">
+        <img 
+          :src="currentPhoto?.url" 
+          :alt="currentPhoto?.filename" 
+          class="current-image" 
+          draggable="false"
+          @click="handleImageClick" />
       </div>
 
-      <div class="photo-info">
-        <div class="photo-meta">
-          <p class="filename">
-            {{ currentPhoto?.filename }}
-          </p>
-        </div>
-        <div class="photo-counter">
-          {{ currentIndex + 1 }} / {{ photos.length }}
-        </div>
-      </div>
+      <button v-if="!isMobile" class="navigation prev" @click.stop="previousPhoto" aria-label="Previous">
+        <Icon class="nav-icon" :size="32" color="#fff" :filled="true">
+          <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
+        </Icon>
+      </button>
+
+      <button v-if="!isMobile" class="navigation next" @click.stop="nextPhoto" aria-label="Next">
+        <Icon class="nav-icon" :size="32" color="#fff" :filled="true">
+          <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+        </Icon>
+      </button>
     </div>
   </div>
 </template>
 
-<style scoped lang="scss">
-.photo-viewer-overlay {
+<style scoped>
+.MediaViewer {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.9);
+  background: #000;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.media-viewer-header {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 56px;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), transparent);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  z-index: 10;
+}
+
+.close-button {
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  color: white;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
-  animation: fadeIn 0.2s ease;
+  transition: background-color 0.2s;
+  flex-shrink: 0;
 }
 
-.photo-viewer {
+.close-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.close-icon {
+  width: 24px;
+  height: 24px;
+}
+
+
+
+.MediaViewerSlides {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  touch-action: pan-y pinch-zoom;
+}
+
+.current-image-container {
   width: 100%;
   height: 100%;
   display: flex;
-  flex-direction: column;
-  position: relative;
-}
-
-.close-btn {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  width: 40px;
-  height: 40px;
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-  border-radius: 50%;
-  color: white;
-  font-size: 20px;
-  cursor: pointer;
-  z-index: 10;
-  display: flex;
   align-items: center;
   justify-content: center;
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.2);
-  }
-}
-
-.photo-container {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 60px 20px 20px;
-}
-
-.photo-wrapper {
-  max-width: 90%;
-  max-height: 90%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.full-photo {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-  border-radius: 4px;
-}
-
-.nav-btn {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 50px;
-  height: 50px;
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-  border-radius: 50%;
-  color: white;
-  font-size: 24px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.2);
-  }
-
-  @media (max-width: 768px) {
-    width: 40px;
-    height: 40px;
-    font-size: 20px;
-  }
-}
-
-.prev-btn {
-  left: 20px;
-}
-
-.next-btn {
-  right: 20px;
-}
-
-.photo-info {
-  padding: 20px;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  color: white;
-}
-
-.photo-meta {
-  flex: 1;
-}
-
-.filename {
-  margin: 0 0 4px 0;
-  font-size: 14px;
-  font-weight: 500;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.size {
+  padding: 0;
   margin: 0;
-  font-size: 12px;
-  opacity: 0.7;
 }
 
-.photo-counter {
-  font-size: 14px;
-  opacity: 0.8;
+
+@media (max-width: 768px) {
+  .current-image {
+    width: 100vw !important;
+    height: auto !important;
+    max-height: 100vh !important;
+    object-fit: contain !important;
+    object-position: center !important;
+    display: block !important;
+  }
+
+  .current-image-container {
+    width: 100vw !important;
+    height: 100vh !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .media-viewer-header {
+    height: 44px;
+    padding: 0 12px;
+  }
+
+  .close-button {
+    width: 36px;
+    height: 36px;
+  }
+
+  .close-icon {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+
+@media (min-width: 769px) {
+  .current-image {
+    max-width: 100% !important;
+    max-height: calc(100vh - 56px) !important;
+    height: auto !important;
+    width: auto !important;
+    object-fit: contain !important;
+    object-position: center !important;
+    display: block !important;
+  }
+
+  .current-image-container {
+    max-width: 100vw;
+    max-height: 100vh;
+  }
+
+  .navigation {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 56px;
+    height: 56px;
+    border: none;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s, background-color 0.2s;
+    z-index: 10;
+    padding: 0;
+  }
+
+  .MediaViewer:hover .navigation {
+    opacity: 0.7;
+  }
+
+  .navigation:hover {
+    opacity: 1 !important;
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  .prev {
+    left: 20px;
+  }
+
+  .next {
+    right: 20px;
+  }
+
+  .nav-icon {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+.MediaViewer {
+  animation: fadeIn 0.2s ease;
 }
 
 @keyframes fadeIn {
@@ -252,38 +337,21 @@ onUnmounted(() => {
   }
 }
 
-@media (max-width: 640px) {
-  .close-btn {
-    top: 10px;
-    right: 10px;
-    width: 36px;
-    height: 36px;
-    font-size: 18px;
-  }
+.no-scroll {
+  overflow: hidden !important;
+  position: fixed;
+  width: 100%;
+  height: 100%;
+}
 
-  .nav-btn {
-    width: 40px;
-    height: 40px;
-    font-size: 20px;
-  }
+:deep(*) {
+  box-sizing: border-box;
+}
 
-  .prev-btn {
-    left: 10px;
-  }
-
-  .next-btn {
-    right: 10px;
-  }
-
-  .photo-info {
-    padding: 12px;
-    flex-direction: column;
-    gap: 8px;
-    align-items: flex-start;
-  }
-
-  .photo-counter {
-    align-self: flex-end;
-  }
+.current-image {
+  -webkit-user-drag: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
 }
 </style>

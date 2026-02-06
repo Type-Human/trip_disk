@@ -28,9 +28,9 @@ function getPhotoUrl(photo: Photo): string {
 const selectedIds = ref<Set<string>>(new Set())
 const showToolbar = ref(false)
 
+
 const selectedCount = computed(() => selectedIds.value.size)
 
-// Следим за изменением режима выбора
 watch(() => props.selectionMode, (newValue) => {
   if (newValue) {
     showToolbar.value = true
@@ -297,7 +297,6 @@ function handleCancel() {
   background: white;
   cursor: pointer;
   transition: all 0.2s;
-  border: 1px solid #eee;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 
   &:hover {
@@ -406,7 +405,6 @@ function handleCancel() {
   .photos-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 8px;
-    padding: 0 8px;
   }
 
   .photo-item {

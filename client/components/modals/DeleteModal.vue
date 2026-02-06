@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import type { Trip } from '../../types/trip'
+
 
 defineProps<{
-  trip: Trip | null
   loading?: boolean
 }>()
 
@@ -14,11 +13,11 @@ const emit = defineEmits<{
 
 <template>
   <Teleport to="body">
-    <div v-if="trip" class="modal-overlay" @click="emit('close')">
+    <div class="modal-overlay" @click="emit('close')">
       <div class="modal" @click.stop>
-        <h3>Удалить путешествие?</h3>
+        <h3>Удалить выбранное?</h3>
         <p class="modal-text">
-          Путешествие «{{ trip.title }}» и все фото будут удалены без возможности восстановления.
+           Все фото внутри будут удалены 
         </p>
         <div class="modal-actions">
           <button type="button" class="cancel" :disabled="loading" @click="emit('close')">
