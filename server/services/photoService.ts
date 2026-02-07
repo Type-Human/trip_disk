@@ -72,28 +72,37 @@ export class PhotoService {
   }
 
   async delete(id: string): Promise<boolean> {
-    const db = getDatabase().getDatabase()
-    const photo = db.prepare('SELECT * FROM photos WHERE id = ?').get(id) as Photo | undefined
+  const db = getDatabase().getDatabase()
+  const photo = db.prepare('SELECT * FROM photos WHERE id = ?').get(id) as Photo | undefined
 
-    if (!photo) {
-      return false
-    }
-
-    try {
-      const filename = photo.url.replace('/uploads/', '')
-      const filepath = join(process.cwd(), 'public', 'uploads', filename)
-
-      if (existsSync(filepath)) {
-        await unlink(filepath)
-      }
-    }
-    catch (error) {
-      console.error('Ошибка удаления файла:', error)
-    }
-
-    const result = db.prepare('DELETE FROM photos WHERE id = ?').run(id)
-    return result.changes > 0
+  if (!photo) {
+    return false
   }
+
+  try {
+    const filename = photo.url.replace('/uploads/', '')
+    
+    const filepath = join(process.cwd(), 'uploads', filename)
+    
+    console.log(`Пытаюсь удалить файл: ${filepath}`) 
+    
+    if (existsSync(filepath)) {
+      await unlink(filepath)
+      console.log(`Файл успешно удален: ${filepath}`)
+    } else {
+      console.warn(`Файл не найден: ${filepath}`)
+    
+      const alternativePath = join(process.cwd(), 'public', 'uploads', filename)
+      console.log(`Проверяю альтернативный путь: ${alternativePath}`)
+    }
+  }
+  catch (error) {
+    console.error('Ошибка удаления файла:', error)
+  }
+
+  const result = db.prepare('DELETE FROM photos WHERE id = ?').run(id)
+  return result.changes > 0
+}
 
   async deleteByTripId(tripId: string): Promise<number> {
     const db = getDatabase().getDatabase()

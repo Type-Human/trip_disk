@@ -11,7 +11,6 @@ import Icon from '../components/ui/Icon.vue'
 import PhotoUpload from '../components/upload/PhotoUpload.vue'
 import DeleteModal from '../components/modals/DeleteModal.vue'
 
-
 const route = useRoute()
 const tripId = route.params.id as string
 
@@ -26,7 +25,7 @@ const showCreateFolder = ref(false)
 const showPhotoViewer = ref(false)
 const currentPhotoIndex = ref(0)
 const isLoading = ref(false)
-const isUploading = ref(false)
+const isUploading = ref(false) 
 const showMobileMenu = ref(false)
 const showDeleteModal = ref(false)
 const folderIdDelete = ref()
@@ -80,11 +79,14 @@ async function fetchTripData() {
 async function handlePhotoUpload(files: File[], folderId?: string) {
   try {
     isUploading.value = true
-    showUpload.value = false
+
 
     const targetFolderId = folderId || (activeFolder.value !== 'all' ? activeFolder.value : undefined)
     const uploadedPhotos = await tripApi.uploadPhotos(tripId, files, targetFolderId)
     photos.value.push(...uploadedPhotos)
+
+
+    showUpload.value = false
   }
   catch (error) {
     console.error('Ошибка загрузки фото:', error)
@@ -97,6 +99,7 @@ async function handlePhotoUpload(files: File[], folderId?: string) {
 async function handleCreateFolder(name: string) {
   try {
     const folder = await tripApi.createFolder(tripId, name)
+
     folders.value.push(folder)
     activeFolder.value = folder.id
     showCreateFolder.value = false
@@ -120,7 +123,6 @@ async function handleDeletePhotos(ids: string[]) {
 async function handleDeleteFolder(folderId: string) {
   showDeleteModal.value = true
   folderIdDelete.value = folderId
-
 }
 
 async function confirmDeleteModal() {
@@ -142,7 +144,6 @@ async function confirmDeleteModal() {
   } finally {
     isDeleting.value = false
   }
-
 }
 
 function closeDeleteModal() {
@@ -150,7 +151,6 @@ function closeDeleteModal() {
     showDeleteModal.value = false
     folderIdDelete.value = false
   }
-
 }
 
 function openPhotoViewer(index: number) {
@@ -176,11 +176,11 @@ onMounted(() => {
       </div>
 
       <div class="desktop-actions">
-        <button class="btn-secondary" @click="showCreateFolder = true">
-          + Папка
-        </button>
         <button class="btn-primary" @click="showUpload = true">
           Добавить фото
+        </button>
+        <button class="btn-secondary" @click="showCreateFolder = true">
+          + Папка
         </button>
       </div>
       <button v-if="!selectionMode && filteredPhotos.length > 0" class="manage-photos-btn"
@@ -230,9 +230,10 @@ onMounted(() => {
       :selection-mode="selectionMode" @upload="showUpload = true" @photo-click="openPhotoViewer"
       @delete-photos="handleDeletePhotos" @cancel-selection="cancelSelection" />
 
+    <!-- ПЕРЕДАЕМ isUploading как пропс -->
     <PhotoUpload v-if="showUpload" :folders="realFolders"
-      :selected-folder-id="activeFolder !== 'all' ? activeFolder : null" @close="showUpload = false"
-      @upload="handlePhotoUpload" />
+      :selected-folder-id="activeFolder !== 'all' ? activeFolder : null" :is-uploading="isUploading"
+      @close="showUpload = false" @upload="handlePhotoUpload" />
 
     <AddFolderModal v-if="showCreateFolder" @close="showCreateFolder = false" @create="handleCreateFolder" />
 
@@ -333,7 +334,7 @@ onMounted(() => {
   flex-shrink: 0;
 
   &:hover {
-    
+
     transform: translateY(-1px);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   }
@@ -363,10 +364,10 @@ onMounted(() => {
   gap: 6px;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: none; 
-  -ms-overflow-style: none; 
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 
- 
+
   &::-webkit-scrollbar {
     display: none;
     width: 0;
@@ -374,9 +375,9 @@ onMounted(() => {
     background: transparent;
   }
 
-  
+
   & {
-    scrollbar-width: none; 
+    scrollbar-width: none;
     -ms-overflow-style: none
   }
 
@@ -431,8 +432,10 @@ onMounted(() => {
   white-space: nowrap;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 6px;
   transition: all 0.2s;
+   min-width: 110px;
   font-size: 13px;
   flex-shrink: 0;
 

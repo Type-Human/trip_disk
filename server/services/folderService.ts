@@ -14,7 +14,7 @@ export class FolderService {
 
   async getByTripId(tripId: string): Promise<Folder[]> {
     const db = getDatabase().getDatabase()
-    const folders = db.prepare('SELECT * FROM folders WHERE tripId = ? ORDER BY createdAt DESC').all(tripId) as Folder[]
+    const folders = db.prepare('SELECT * FROM folders WHERE tripId = ? ORDER BY createdAt ASC').all(tripId) as Folder[]
     return folders
   }
 

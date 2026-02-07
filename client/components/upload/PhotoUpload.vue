@@ -1,16 +1,21 @@
 <script setup lang="ts">
-import { computed, onUnmounted, ref } from 'vue'
+import { onUnmounted, ref } from 'vue'
+import CustomSelect from '../ui/CustomSelect.vue';
+
+const props = defineProps<{
+  folders?: Array<{ id: string; name: string }>
+  selectedFolderId?: string | null
+  isUploading?: boolean
+}>()
 
 const emit = defineEmits<{
   close: []
-  upload: [files: File[]]
+  upload: [files: File[], folderId?: string]
 }>()
 
 const files = ref<File[]>([])
 const isDragging = ref(false)
-const uploadProgress = ref(0)
-const isUploading = ref(false)
-
+const selectedFolder = ref<string | null>(props.selectedFolderId || '')
 const objectUrls = ref<Map<File, string>>(new Map())
 
 function getObjectUrl(file: File): string {
@@ -47,7 +52,6 @@ function handleDragLeave() {
 function handleDrop(e: DragEvent) {
   e.preventDefault()
   isDragging.value = false
-
   const droppedFiles = Array.from(e.dataTransfer?.files || [])
   addFiles(droppedFiles)
 }
@@ -59,14 +63,8 @@ function handleFileSelect(e: Event) {
 }
 
 function addFiles(newFiles: File[]) {
-  const imageFiles = newFiles.filter(file =>
-    file.type.startsWith('image/'),
-  )
-
-  const validFiles = imageFiles.filter(file =>
-    file.size <= 10 * 1024 * 1024,
-  )
-
+  const imageFiles = newFiles.filter(file => file.type.startsWith('image/'))
+  const validFiles = imageFiles.filter(file => file.size <= 10 * 1024 * 1024)
   files.value = [...files.value, ...validFiles]
 }
 
@@ -76,35 +74,21 @@ function removeFile(index: number) {
   files.value.splice(index, 1)
 }
 
-async function handleUpload() {
-  if (files.value.length === 0)
-    return
+function handleUpload() {
+  if (files.value.length === 0) return
 
-  isUploading.value = true
 
-  const interval = setInterval(() => {
-    uploadProgress.value += 10
-    if (uploadProgress.value >= 100) {
-      clearInterval(interval)
-      setTimeout(() => {
-        emit('upload', files.value)
+  emit('upload', files.value, selectedFolder.value || undefined)
 
-        files.value = []
-        uploadProgress.value = 0
-        isUploading.value = false
-      }, 500)
-    }
-  }, 100)
+  files.value = []
+  selectedFolder.value = ''
 }
 
 function formatFileSize(bytes: number): string {
-  if (bytes === 0)
-    return '0 Bytes'
-
+  if (bytes === 0) return '0 Bytes'
   const k = 1024
   const sizes = ['Bytes', 'KB', 'MB', 'GB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
-
   return `${Number.parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`
 }
 
@@ -118,31 +102,20 @@ onUnmounted(() => {
     <div class="modal" @click.stop>
       <div class="modal-header">
         <h2>Загрузить фото</h2>
-        <button class="close-btn" :disabled="isUploading" @click="emit('close')">
+        <button class="close-btn" :disabled="props.isUploading" @click="emit('close')">
           ✕
         </button>
       </div>
 
-      <div
-        class="drop-zone"
-        :class="{ dragging: isDragging }"
-        @dragover="handleDragOver"
-        @dragleave="handleDragLeave"
-        @drop="handleDrop"
-      >
+      <div class="drop-zone" :class="{ dragging: isDragging }" @dragover="handleDragOver" @dragleave="handleDragLeave"
+        @drop="handleDrop">
         <div class="drop-content">
           <div class="upload-icon">
             📷
           </div>
           <p>Перетащите сюда фото или</p>
           <label class="browse-btn">
-            <input
-              type="file"
-              multiple
-              accept="image/*"
-              :disabled="isUploading"
-              @change="handleFileSelect"
-            >
+            <input type="file" multiple accept="image/*" :disabled="props.isUploading" @change="handleFileSelect">
             Выбрать файлы
           </label>
           <p class="hint">
@@ -151,20 +124,17 @@ onUnmounted(() => {
         </div>
       </div>
 
+      <div v-if="props.folders && props.folders.length > 0" class="folder-select">
+        <CustomSelect :folders="props.folders" :selected-folder-id="selectedFolder" :is-uploading="props.isUploading"
+          @update:selectedFolderId="selectedFolder = $event" />
+      </div>
+
       <div v-if="files.length > 0" class="file-list">
         <h3>Выбранные файлы ({{ files.length }})</h3>
         <div class="files-grid">
-          <div
-            v-for="(file, index) in files"
-            :key="index"
-            class="file-item"
-          >
+          <div v-for="(file, index) in files" :key="index" class="file-item">
             <div class="file-preview">
-              <img
-                v-if="file.type.startsWith('image/')"
-                :src="getObjectUrl(file)"
-                :alt="file.name"
-              >
+              <img v-if="file.type.startsWith('image/')" :src="getObjectUrl(file)" :alt="file.name">
               <div v-else class="file-icon">
                 📄
               </div>
@@ -177,42 +147,22 @@ onUnmounted(() => {
                 {{ formatFileSize(file.size) }}
               </p>
             </div>
-            <button
-              class="remove-btn"
-              :disabled="isUploading"
-              @click="removeFile(index)"
-            >
+            <button class="remove-btn" :disabled="props.isUploading" @click="removeFile(index)">
               ✕
             </button>
           </div>
         </div>
       </div>
 
-      <div v-if="isUploading" class="upload-progress">
-        <div class="progress-bar">
-          <div
-            class="progress-fill"
-            :style="{ width: `${uploadProgress}%` }"
-          />
-        </div>
-        <p>{{ uploadProgress }}%</p>
-      </div>
-
       <div class="modal-actions">
-        <button
-          class="btn-secondary"
-          :disabled="isUploading"
-          @click="emit('close')"
-        >
+        <button class="btn-secondary" :disabled="props.isUploading" @click="emit('close')">
           Отмена
         </button>
-        <button
-          class="btn-primary"
-          :disabled="files.length === 0 || isUploading"
-          @click="handleUpload"
-        >
-          <span v-if="isUploading">Загрузка...</span>
-          <span v-else>Загрузить ({{ files.length }})</span>
+        <button class="btn-primary" :disabled="files.length === 0 || props.isUploading" @click="handleUpload">
+          <span class="btn-content">
+            <span v-if="props.isUploading" class="btn-spinner"></span>
+            <span v-else>Загрузить ({{ files.length }})</span>
+          </span>
         </button>
       </div>
     </div>
@@ -230,7 +180,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 900;
 }
 
 .modal {
@@ -241,6 +191,16 @@ onUnmounted(() => {
   max-height: 90vh;
   overflow-y: auto;
   animation: slideUp 0.3s ease;
+  scrollbar-width: none;
+  -ms-overflow-style: none; 
+}
+
+
+.modal::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+  background: transparent;
 }
 
 .modal-header {
@@ -249,6 +209,10 @@ onUnmounted(() => {
   align-items: center;
   padding: 24px;
   border-bottom: 1px solid #e5e7eb;
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 1;
 }
 
 .modal-header h2 {
@@ -264,15 +228,15 @@ onUnmounted(() => {
   cursor: pointer;
   padding: 4px;
   border-radius: 4px;
+}
 
-  &:hover:not(:disabled) {
-    background: #f3f4f6;
-  }
+.close-btn:hover:not(:disabled) {
+  background: #f3f4f6;
+}
 
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
+.close-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .drop-zone {
@@ -283,11 +247,11 @@ onUnmounted(() => {
   text-align: center;
   transition: all 0.3s ease;
   cursor: pointer;
+}
 
-  &.dragging {
-    border-color: #6366f1;
-    background: rgba(99, 102, 241, 0.05);
-  }
+.drop-zone.dragging {
+  border-color: #6366f1;
+  background: rgba(99, 102, 241, 0.05);
 }
 
 .upload-icon {
@@ -304,20 +268,54 @@ onUnmounted(() => {
   cursor: pointer;
   margin: 16px 0;
   transition: background 0.2s;
+}
 
-  &:hover {
-    background: #4f46e5;
-  }
+.browse-btn:hover {
+  background: #4f46e5;
+}
 
-  input[type='file'] {
-    display: none;
-  }
+.browse-btn input[type='file'] {
+  display: none;
 }
 
 .hint {
   color: #6b7280;
   font-size: 14px;
   margin: 8px 0 0 0;
+}
+
+.folder-select {
+  margin: 0 24px 24px 24px;
+  position: relative;
+  z-index: 10;
+}
+
+:deep(.custom-select) {
+  position: relative;
+}
+
+:deep(.custom-select__dropdown) {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: 4px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+:deep(.custom-select__dropdown::-webkit-scrollbar) {
+  display: none;
+  width: 0;
+  height: 0;
+  background: transparent;
 }
 
 .file-list {
@@ -336,6 +334,15 @@ onUnmounted(() => {
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   padding: 8px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.files-grid::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+  background: transparent;
 }
 
 .file-item {
@@ -343,10 +350,10 @@ onUnmounted(() => {
   align-items: center;
   padding: 12px;
   border-bottom: 1px solid #f3f4f6;
+}
 
-  &:last-child {
-    border-bottom: none;
-  }
+.file-item:last-child {
+  border-bottom: none;
 }
 
 .file-preview {
@@ -400,38 +407,16 @@ onUnmounted(() => {
   cursor: pointer;
   padding: 4px 8px;
   border-radius: 4px;
-
-  &:hover:not(:disabled) {
-    background: #f3f4f6;
-    color: #ef4444;
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
 }
 
-.upload-progress {
-  margin: 24px;
-  padding: 16px;
-  background: #f9fafb;
-  border-radius: 8px;
+.remove-btn:hover:not(:disabled) {
+  background: #f3f4f6;
+  color: #ef4444;
 }
 
-.progress-bar {
-  height: 8px;
-  background: #e5e7eb;
-  border-radius: 4px;
-  overflow: hidden;
-  margin-bottom: 8px;
-}
-
-.progress-fill {
-  height: 100%;
-  background: #10b981;
-  border-radius: 4px;
-  transition: width 0.3s ease;
+.remove-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .modal-actions {
@@ -439,6 +424,10 @@ onUnmounted(() => {
   gap: 12px;
   padding: 24px;
   border-top: 1px solid #e5e7eb;
+  position: sticky;
+  bottom: 0;
+  background: white;
+  z-index: 1;
 }
 
 .btn-primary,
@@ -450,35 +439,65 @@ onUnmounted(() => {
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
 }
 
 .btn-primary {
   background: #6366f1;
   color: white;
   border: none;
+}
 
-  &:hover:not(:disabled) {
-    background: #4f46e5;
-  }
+.btn-primary:hover:not(:disabled) {
+  background: #4f46e5;
+}
 
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .btn-secondary {
   background: white;
   color: #374151;
   border: 1px solid #d1d5db;
+}
 
-  &:hover:not(:disabled) {
-    background: #f9fafb;
+.btn-secondary:hover:not(:disabled) {
+  background: #f9fafb;
+}
+
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
   }
 
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+  100% {
+    transform: rotate(360deg);
   }
 }
 
@@ -487,9 +506,12 @@ onUnmounted(() => {
     transform: translateY(20px);
     opacity: 0;
   }
+
   to {
     transform: translateY(0);
     opacity: 1;
   }
 }
+
+
 </style>
