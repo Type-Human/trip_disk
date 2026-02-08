@@ -1,5 +1,3 @@
-import { join } from "node:path";
-import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { getDatabase } from "../database";
@@ -11,14 +9,6 @@ import { initializeStorage } from "../storage";
 
 export async function createApp(): Promise<Hono> {
   const app = new Hono();
-  
-
-  app.use(
-    "/uploads/*",
-    serveStatic({
-      root: join(process.cwd(), "public"),
-    }),
-  );
 
   app.use(
     "/*",
@@ -58,7 +48,9 @@ export async function createApp(): Promise<Hono> {
   ]);
 
   const apiRoutes = createRoutes(tripService, photoService, folderService);
-  app.route("/api", apiRoutes);
+  
+  // Mount API routes at root, not at /api
+  app.route('/', apiRoutes);
 
   app.notFound((c) => {
     return c.json({ error: "Not Found" }, 404);

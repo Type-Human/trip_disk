@@ -24,10 +24,14 @@ services:
       - DB_PATH=/app/data/trip_disk.db
     volumes:
       - ./data:/app/data
-      - ./uploads:/app/public/uploads
+      - trip_disk_uploads:/app/uploads
     restart: unless-stopped
     networks:
       - trip_disk_network
+
+volumes:
+  trip_disk_uploads:
+    external: true
 
 networks:
   trip_disk_network:

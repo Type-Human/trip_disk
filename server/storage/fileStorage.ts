@@ -9,6 +9,10 @@ export class FileStorage {
     private dataDir: string,
   ) {}
 
+  get uploadsDirectory(): string {
+    return this.uploadsDir;
+  }
+
   async ensureDirectories(): Promise<void> {
     if (!existsSync(this.uploadsDir)) {
       await mkdir(this.uploadsDir, { recursive: true })

@@ -72,37 +72,59 @@ export class PhotoService {
   }
 
   async delete(id: string): Promise<boolean> {
-  const db = getDatabase().getDatabase()
-  const photo = db.prepare('SELECT * FROM photos WHERE id = ?').get(id) as Photo | undefined
+    console.log('🚨 === НАЧАЛО УДАЛЕНИЯ ФОТО ===')
+    console.log(`🔍 Ищем фото ID: ${id}`)
+    
+    const db = getDatabase().getDatabase()
+    const photo = db.prepare('SELECT * FROM photos WHERE id = ?').get(id) as Photo | undefined
 
-  if (!photo) {
-    return false
-  }
-
-  try {
-    const filename = photo.url.replace('/uploads/', '')
-    
-    const filepath = join(process.cwd(), 'uploads', filename)
-    
-    console.log(`Пытаюсь удалить файл: ${filepath}`) 
-    
-    if (existsSync(filepath)) {
-      await unlink(filepath)
-      console.log(`Файл успешно удален: ${filepath}`)
-    } else {
-      console.warn(`Файл не найден: ${filepath}`)
-    
-      const alternativePath = join(process.cwd(), 'public', 'uploads', filename)
-      console.log(`Проверяю альтернативный путь: ${alternativePath}`)
+    if (!photo) {
+      console.log('❌ Фото не найдено в БД')
+      return false
     }
-  }
-  catch (error) {
-    console.error('Ошибка удаления файла:', error)
-  }
 
-  const result = db.prepare('DELETE FROM photos WHERE id = ?').run(id)
-  return result.changes > 0
-}
+    console.log(`✅ Найдено фото в БД: ${photo.filename}`)
+    console.log(`📁 URL в БД: ${photo.url}`)
+
+    try {
+      const filename = photo.url.replace('/uploads/', '')
+      console.log(`📄 Имя файла из URL: ${filename}`)
+      
+      // Используем абсолютный путь /app/uploads
+      const filepath = join('/app/uploads', filename)
+      console.log(`📍 Полный путь к файлу: ${filepath}`)
+      console.log(`📊 Файл существует: ${existsSync(filepath)}`)
+
+      if (existsSync(filepath)) {
+        console.log('🗑️ Удаляю файл с диска...')
+        await unlink(filepath)
+        console.log('✅ Файл успешно удален с диска')
+      } else {
+        console.log('⚠️ Файл не найден на диске')
+        
+        // Покажем что есть в папке uploads
+        const fs = require('fs')
+        const files = fs.readdirSync('/app/uploads')
+        console.log(`📂 Всего файлов в /app/uploads: ${files.length}`)
+        
+        // Ищем похожие файлы
+        const similar = files.filter(f => f.includes(filename))
+        if (similar.length > 0) {
+          console.log(`🔍 Похожие файлы: ${similar.join(', ')}`)
+        }
+      }
+    }
+    catch (error) {
+      console.error('💥 Ошибка удаления файла:', error)
+    }
+
+    console.log('🗃️ Удаляю запись из БД...')
+    const result = db.prepare('DELETE FROM photos WHERE id = ?').run(id)
+    console.log(`📊 Удалено записей из БД: ${result.changes}`)
+    
+    console.log('🏁 === КОНЕЦ УДАЛЕНИЯ ФОТО ===')
+    return result.changes > 0
+  }
 
   async deleteByTripId(tripId: string): Promise<number> {
     const db = getDatabase().getDatabase()
@@ -111,7 +133,7 @@ export class PhotoService {
     for (const photo of photos) {
       try {
         const filename = photo.url.replace('/uploads/', '')
-        const filepath = join(process.cwd(), 'public', 'uploads', filename)
+        const filepath = join('/app/uploads', filename)
 
         if (existsSync(filepath)) {
           await unlink(filepath)
@@ -133,7 +155,7 @@ export class PhotoService {
     for (const photo of photos) {
       try {
         const filename = photo.url.replace('/uploads/', '')
-        const filepath = join(process.cwd(), 'public', 'uploads', filename)
+        const filepath = join('/app/uploads', filename)
 
         if (existsSync(filepath)) {
           await unlink(filepath)
