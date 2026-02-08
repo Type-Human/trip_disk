@@ -2,6 +2,7 @@
 import type { Photo } from '../../types/trip'
 import { computed, onMounted, ref, onUnmounted } from 'vue'
 import Icon from '../ui/Icon.vue';
+import { tripApi } from '@/api';
 
 const props = defineProps<{
   photos: Photo[]
@@ -16,14 +17,25 @@ const emit = defineEmits<{
 const currentPhoto = computed(() => props.photos[props.currentIndex])
 const touchStartX = ref(0)
 const isMobile = ref(false)
-
-
 const lastTapTime = ref(0)
 let tapCount = 0
 let tapTimeout: number | null = null
 
 function checkMobile() {
   isMobile.value = window.innerWidth <= 768
+}
+
+async function downloadCurrentPhoto() {
+  try {
+    const photoId = currentPhoto.value?.id
+    if (!photoId) return
+
+    const filename = currentPhoto.value?.filename || 'photo.jpg'
+    await tripApi.downloadPhotoAsFile(photoId, filename)
+
+  } catch (error) {
+    console.error('Ошибка скачивания:', error)
+  }
 }
 
 function handleTouchStart(e: TouchEvent) {
@@ -118,19 +130,24 @@ onUnmounted(() => {
 <template>
   <div class="MediaViewer">
     <div class="media-viewer-header">
-
       <div v-if="!isMobile" class="photo-counter">
         {{ currentIndex + 1 }} / {{ photos.length }}
       </div>
 
-      <button class="close-button" @click="emit('close')" aria-label="Close">
-        <Icon class="close-icon" :size="20" :color="isMobile ? '#fff' : 'currentColor'" :filled="true">
-          <path
-            d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
-        </Icon>
-      </button>
+      <div class="header-actions">
+        <button class="download-button" @click="downloadCurrentPhoto" aria-label="Download">
+          <Icon class="download-icon" :size="20" color="#fff" :filled="true">
+            <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
+          </Icon>
+        </button>
 
-
+        <button class="close-button" @click="emit('close')" aria-label="Close">
+          <Icon class="close-icon" :size="20" color="#fff" :filled="true">
+            <path
+              d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+          </Icon>
+        </button>
+      </div>
     </div>
 
     <div class="MediaViewerSlides" @touchstart="handleTouchStart" @touchend="handleTouchEnd"
@@ -155,6 +172,8 @@ onUnmounted(() => {
   </div>
 </template>
 
+
+
 <style scoped>
 .MediaViewer {
   position: fixed;
@@ -178,15 +197,22 @@ onUnmounted(() => {
   background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), transparent);
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 0 16px;
   z-index: 10;
 }
 
-.photo-counter{
-  margin-right: auto;
-  color: white;
+.header-actions {
+  display: flex;
+  gap: 8px;
 }
 
+.photo-counter {
+  color: white;
+  font-size: 14px;
+}
+
+.download-button,
 .close-button {
   width: 40px;
   height: 40px;
@@ -202,16 +228,16 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 
+.download-button:hover,
 .close-button:hover {
   background: rgba(255, 255, 255, 0.2);
 }
 
+.download-icon,
 .close-icon {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
 }
-
-
 
 .MediaViewerSlides {
   flex: 1;
@@ -235,7 +261,6 @@ onUnmounted(() => {
   margin: 0;
 }
 
-
 @media (max-width: 768px) {
   .current-image {
     width: 100vw !important;
@@ -245,6 +270,13 @@ onUnmounted(() => {
     object-position: center !important;
     display: block !important;
   }
+
+  .header-actions {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  gap: 8px;
+}
 
   .current-image-container {
     width: 100vw !important;
@@ -256,20 +288,20 @@ onUnmounted(() => {
   .media-viewer-header {
     height: 44px;
     padding: 0 12px;
-    justify-content: end;
   }
 
+  .download-button,
   .close-button {
     width: 36px;
     height: 36px;
   }
 
+  .download-icon,
   .close-icon {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
   }
 }
-
 
 @media (min-width: 769px) {
   .current-image {

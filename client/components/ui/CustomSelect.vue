@@ -18,7 +18,6 @@ const selectedFolder = ref(props.selectedFolderId || '')
 const selectedLabel = ref('Без папки')
 const dropdownWidth = ref('auto')
 
-// Следим за изменениями selectedFolderId извне
 watch(() => props.selectedFolderId, (newVal) => {
     selectedFolder.value = newVal || ''
     updateSelectedLabel()
@@ -60,22 +59,22 @@ function updateDropdownPosition() {
         const selectRect = selectRef.value.getBoundingClientRect()
         const dropdown = dropdownRef.value
         
-        // Устанавливаем ширину равной ширине триггера
+      
         dropdownWidth.value = `${selectRect.width}px`
         
-        // Позиционируем относительно окна
+     
         dropdown.style.position = 'fixed'
         dropdown.style.left = `${selectRect.left}px`
         dropdown.style.top = `${selectRect.bottom + 4}px`
         dropdown.style.width = dropdownWidth.value
         
-        // Проверяем, помещается ли dropdown снизу
+       
         const viewportHeight = window.innerHeight
         const dropdownHeight = dropdown.offsetHeight
         const spaceBelow = viewportHeight - selectRect.bottom
         
         if (spaceBelow < dropdownHeight && selectRect.top > dropdownHeight) {
-            // Если не помещается снизу, показываем сверху
+          
             dropdown.style.top = `${selectRect.top - dropdownHeight - 4}px`
             dropdown.style.borderRadius = '8px 8px 0 0'
         } else {

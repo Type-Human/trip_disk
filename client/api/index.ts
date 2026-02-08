@@ -1,41 +1,40 @@
-import type { CreateTripDto, Folder, Photo, Trip } from '../types/trip'
-import { api as realApi } from './client'
+import type { CreateTripDto, Folder, Photo, Trip } from "../types/trip";
+import { api as realApi } from "./client";
 
 export const tripApi = {
-
   async getAll(): Promise<Trip[]> {
-    return realApi.get<Trip[]>('/trips')
+    return realApi.get<Trip[]>("/trips");
   },
 
   async getById(id: string): Promise<Trip> {
-    return realApi.get<Trip>(`/trips/${id}`)
+    return realApi.get<Trip>(`/trips/${id}`);
   },
 
   async create(data: CreateTripDto & { coverImage?: File }): Promise<Trip> {
     if (data.coverImage) {
-      const formData = new FormData()
-      formData.append('title', data.title)
-      formData.append('description', data.description || '')
-      formData.append('date', data.date)
-      formData.append('location', data.location || '')
-      formData.append('coverImage', data.coverImage)
-      return realApi.upload<Trip>('/trips', formData)
+      const formData = new FormData();
+      formData.append("title", data.title);
+      formData.append("description", data.description || "");
+      formData.append("date", data.date);
+      formData.append("location", data.location || "");
+      formData.append("coverImage", data.coverImage);
+      return realApi.upload<Trip>("/trips", formData);
     }
 
-    return realApi.post<Trip>('/trips', {
+    return realApi.post<Trip>("/trips", {
       title: data.title,
       description: data.description,
       date: data.date,
       location: data.location,
-    })
+    });
   },
 
   async delete(id: string): Promise<void> {
-    return realApi.delete<void>(`/trips/${id}`)
+    return realApi.delete<void>(`/trips/${id}`);
   },
 
   async getPhotosByTripId(tripId: string): Promise<Photo[]> {
-    return realApi.get<Photo[]>(`/trips/${tripId}/photos`)
+    return realApi.get<Photo[]>(`/trips/${tripId}/photos`);
   },
 
   async uploadPhotos(
@@ -43,52 +42,81 @@ export const tripApi = {
     files: File[],
     folderId?: string,
   ): Promise<Photo[]> {
-    const formData = new FormData()
+    const formData = new FormData();
     files.forEach((file) => {
-      formData.append('files', file)
-    })
-    formData.append('tripId', tripId)
+      formData.append("files", file);
+    });
+    formData.append("tripId", tripId);
     if (folderId) {
-      formData.append('folderId', folderId)
+      formData.append("folderId", folderId);
     }
 
-    return realApi.upload<Photo[]>('/photos/upload', formData)
+    return realApi.upload<Photo[]>("/photos/upload", formData);
   },
 
   async deletePhoto(id: string): Promise<void> {
-    return realApi.delete<void>(`/photos/${id}`)
+    return realApi.delete<void>(`/photos/${id}`);
   },
 
   async deletePhotos(ids: string[]): Promise<{ deleted: number }> {
-    return realApi.post<{ deleted: number }>('/photos/delete-batch', { ids })
+    return realApi.post<{ deleted: number }>("/photos/delete-batch", { ids });
   },
 
   async getFoldersByTripId(tripId: string): Promise<Folder[]> {
-    return realApi.get<Folder[]>(`/trips/${tripId}/folders`).catch(() => [])
+    return realApi.get<Folder[]>(`/trips/${tripId}/folders`).catch(() => []);
   },
 
   async getFolders(tripId?: string): Promise<Folder[]> {
-    const url = tripId ? `/folders?tripId=${tripId}` : '/folders'
-    return realApi.get<Folder[]>(url).catch(() => [])
+    const url = tripId ? `/folders?tripId=${tripId}` : "/folders";
+    return realApi.get<Folder[]>(url).catch(() => []);
   },
 
   async createFolder(tripId: string, name: string): Promise<Folder> {
-    return realApi.post<Folder>('/folders', { tripId, name })
+    return realApi.post<Folder>("/folders", { tripId, name });
   },
 
   async deleteFolder(id: string): Promise<void> {
-    return realApi.delete<void>(`/folders/${id}`)
+    return realApi.delete<void>(`/folders/${id}`);
   },
 
   async update(id: string, data: Partial<Trip>): Promise<Trip> {
-    return realApi.put<Trip>(`/trips/${id}`, data)
+    return realApi.put<Trip>(`/trips/${id}`, data);
   },
 
   async updateFolder(id: string, name: string): Promise<Folder> {
-    return realApi.put<Folder>(`/folders/${id}`, { name })
+    return realApi.put<Folder>(`/folders/${id}`, { name });
   },
 
   async updatePhoto(id: string, data: Partial<Photo>): Promise<Photo> {
-    return realApi.put<Photo>(`/photos/${id}`, data)
+    return realApi.put<Photo>(`/photos/${id}`, data);
   },
-}
+
+  async downloadPhoto(photoId: string): Promise<Response> {
+    const API_URL = (import.meta as any).env?.VITE_API_URL || "/api";
+    const response = await fetch(`${API_URL}/photos/download/${photoId}`);
+
+    if (!response.ok) {
+      throw new Error("Ошибка скачивания");
+    }
+
+    return response;
+  },
+
+  async downloadPhotoAsFile(photoId: string, filename?: string): Promise<void> {
+    const response = await this.downloadPhoto(photoId);
+    const blob = await response.blob();
+
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = filename || `photo_${photoId}.jpg`;
+    link.style.display = "none";
+
+    document.body.appendChild(link);
+    link.click();
+
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(link);
+  },
+};
