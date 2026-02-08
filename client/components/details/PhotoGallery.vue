@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Photo } from '../../types/trip'
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
 
 const props = defineProps<{
   photos: Photo[]
@@ -17,21 +17,35 @@ const emit = defineEmits<{
 
 const API_BASE = ((import.meta as any).env?.VITE_API_URL || '/api').replace(/\/api\/?$/, '')
 
-function getPhotoUrl(photo: Photo): string {
-  if (photo.url.startsWith('blob:'))
-    return photo.url
-  if (photo.url.startsWith('http'))
-    return photo.url
-  return `${API_BASE}${photo.url}`
+const thumbnailCache = ref<Map<string, string>>(new Map())
+
+function getThumbnailUrl(photo: Photo): string {
+  const cacheKey = `${photo.id}_thumbnail`
+  
+  if (thumbnailCache.value.has(cacheKey)) {
+    return thumbnailCache.value.get(cacheKey)!
+  }
+  
+  let url = ''
+  if (photo.thumbnailUrl) {
+    if (photo.thumbnailUrl.startsWith('blob:')) url = photo.thumbnailUrl
+    else if (photo.thumbnailUrl.startsWith('http')) url = photo.thumbnailUrl
+    else url = `${API_BASE}${photo.thumbnailUrl}`
+  } else {
+    if (photo.url.startsWith('blob:')) url = photo.url
+    else if (photo.url.startsWith('http')) url = photo.url
+    else url = `${API_BASE}${photo.url}`
+  }
+  
+  thumbnailCache.value.set(cacheKey, url)
+  return url
 }
 
 const selectedIds = ref<Set<string>>(new Set())
 const showToolbar = ref(false)
-const touchStartTime = ref(0)
-const touchStartY = ref(0)
-const touchStartX = ref(0)
-const touchMoved = ref(false)
-const activeTouchIndex = ref<number | null>(null)
+const loadedCount = ref(0)
+const isLoading = ref(false)
+const batchSize = 40
 
 const selectedCount = computed(() => selectedIds.value.size)
 
@@ -44,6 +58,30 @@ watch(() => props.selectionMode, (newValue) => {
     showToolbar.value = false
   }
 })
+
+function loadMore() {
+  if (isLoading.value || loadedCount.value >= props.photos.length) return
+  
+  isLoading.value = true
+  
+  requestAnimationFrame(() => {
+    const newCount = Math.min(loadedCount.value + batchSize, props.photos.length)
+    loadedCount.value = newCount
+    isLoading.value = false
+    
+    if (newCount < props.photos.length) {
+      setTimeout(loadMore, 100)
+    }
+  })
+}
+
+watch(() => props.photos, () => {
+  loadedCount.value = Math.min(batchSize, props.photos.length)
+  
+  if (props.photos.length > batchSize) {
+    setTimeout(loadMore, 200)
+  }
+}, { immediate: true })
 
 function toggleSelect(photoId: string) {
   const next = new Set(selectedIds.value)
@@ -58,44 +96,7 @@ function isSelected(photoId: string) {
   return selectedIds.value.has(photoId)
 }
 
-function handleTouchStart(e: TouchEvent, index: number) {
-  touchStartTime.value = Date.now()
-  touchStartX.value = e.touches[0].clientX
-  touchStartY.value = e.touches[0].clientY
-  touchMoved.value = false
-  activeTouchIndex.value = index
-}
-
-function handleTouchMove(e: TouchEvent) {
-  if (activeTouchIndex.value !== null && !touchMoved.value) {
-    const currentX = e.touches[0].clientX
-    const currentY = e.touches[0].clientY
-    const diffX = Math.abs(currentX - touchStartX.value)
-    const diffY = Math.abs(currentY - touchStartY.value)
-    
-    if (diffX > 10 || diffY > 10) {
-      touchMoved.value = true
-    }
-  }
-}
-
-function handleTouchEnd(e: TouchEvent, index: number) {
-  const touchEndTime = Date.now()
-  const timeDiff = touchEndTime - touchStartTime.value
-  
-  if (!touchMoved.value && timeDiff > 50 && timeDiff < 300 && activeTouchIndex.value === index) {
-    handlePhotoClick(index)
-  }
-  
-  activeTouchIndex.value = null
-  touchMoved.value = false
-}
-
 function handleClick(index: number) {
-  handlePhotoClick(index)
-}
-
-function handlePhotoClick(index: number) {
   if (props.selectionMode) {
     toggleSelect(props.photos[index].id)
   } else {
@@ -122,6 +123,10 @@ function deselectAll() {
 function handleCancel() {
   emit('cancelSelection')
 }
+
+const displayPhotos = computed(() => {
+  return props.photos.slice(0, loadedCount.value)
+})
 </script>
 
 <template>
@@ -182,13 +187,10 @@ function handleCancel() {
 
     <div v-else class="photos-grid">
       <div
-        v-for="(photo, index) in photos"
+        v-for="(photo, index) in displayPhotos"
         :key="photo.id"
         class="photo-item"
         :class="{ selected: selectionMode && isSelected(photo.id) }"
-        @touchstart="(e) => handleTouchStart(e, index)"
-        @touchmove="handleTouchMove"
-        @touchend="(e) => handleTouchEnd(e, index)"
         @click="() => handleClick(index)"
       >
 
@@ -202,12 +204,17 @@ function handleCancel() {
         </div>
 
         <img
-          :src="getPhotoUrl(photo)"
+          :src="getThumbnailUrl(photo)"
           :alt="photo.filename"
           class="photo-image"
           loading="lazy"
+          decoding="async"
         >
       </div>
+    </div>
+
+    <div v-if="loadedCount < photos.length" class="loading-indicator">
+      <div class="spinner"></div>
     </div>
   </div>
 </template>
@@ -215,17 +222,23 @@ function handleCancel() {
 <style scoped lang="scss">
 .photo-gallery {
   width: 100%;
-  padding: 0 4px;
+  contain: content;
 }
 
 .selection-toolbar {
   background: white;
   padding: 12px;
-  margin: 0 -4px 16px -4px;
+  margin-bottom: 16px;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   animation: slideDown 0.2s ease-out;
   border: 1px solid #e0e0e0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.95);
+  will-change: transform;
 }
 
 @keyframes slideDown {
@@ -329,8 +342,9 @@ function handleCancel() {
 
 .photos-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 12px;
+  contain: layout style;
 }
 
 .photo-item {
@@ -339,19 +353,24 @@ function handleCancel() {
   overflow: hidden;
   background: white;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: transform 0.15s ease-out;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
   -webkit-tap-highlight-color: transparent;
   user-select: none;
   -webkit-user-select: none;
+  contain: layout;
+  will-change: transform;
+  backface-visibility: hidden;
+  transform: translateZ(0);
 
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+    z-index: 1;
   }
 
   &.selected {
-    border-color: #0066cc;
+    border: 2px solid #0066cc;
     box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.2);
   }
 }
@@ -405,17 +424,37 @@ function handleCancel() {
 
 .photo-image {
   width: 100%;
-  height: 160px;
+  height: 180px;
   object-fit: cover;
   display: block;
   pointer-events: none;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+.loading-indicator {
+  text-align: center;
+  padding: 20px;
+
+  .spinner {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #0066cc;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
 }
 
 @media (max-width: 768px) {
-  .photo-gallery {
-    padding: 0;
-  }
-
   .selection-toolbar {
     position: fixed;
     top: auto;
@@ -456,6 +495,11 @@ function handleCancel() {
 
   .photo-item {
     border-radius: 10px;
+    
+    &:hover {
+      transform: none;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    }
   }
 
   .photo-image {
@@ -471,6 +515,26 @@ function handleCancel() {
 @media (min-width: 769px) and (max-width: 1024px) {
   .photos-grid {
     grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1025px) and (max-width: 1440px) {
+  .photos-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+  
+  .photo-image {
+    height: 200px;
+  }
+}
+
+@media (min-width: 1441px) {
+  .photos-grid {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  }
+  
+  .photo-image {
+    height: 220px;
   }
 }
 

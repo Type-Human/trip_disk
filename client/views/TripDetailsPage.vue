@@ -80,11 +80,11 @@ async function handlePhotoUpload(files: File[], folderId?: string) {
   try {
     isUploading.value = true
 
-
     const targetFolderId = folderId || (activeFolder.value !== 'all' ? activeFolder.value : undefined)
     const uploadedPhotos = await tripApi.uploadPhotos(tripId, files, targetFolderId)
-    photos.value.push(...uploadedPhotos)
-
+    
+    // ИСПРАВЛЕНО: добавляем в начало
+    photos.value.unshift(...uploadedPhotos)
 
     showUpload.value = false
   }
@@ -230,7 +230,6 @@ onMounted(() => {
       :selection-mode="selectionMode" @upload="showUpload = true" @photo-click="openPhotoViewer"
       @delete-photos="handleDeletePhotos" @cancel-selection="cancelSelection" />
 
-    <!-- ПЕРЕДАЕМ isUploading как пропс -->
     <PhotoUpload v-if="showUpload" :folders="realFolders"
       :selected-folder-id="activeFolder !== 'all' ? activeFolder : null" :is-uploading="isUploading"
       @close="showUpload = false" @upload="handlePhotoUpload" />

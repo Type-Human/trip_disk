@@ -16,10 +16,14 @@ const emit = defineEmits<{
 
 const currentPhoto = computed(() => props.photos[props.currentIndex])
 const touchStartX = ref(0)
+const touchStartY = ref(0)
+const isZooming = ref(false)
+const scale = ref(1)
 const isMobile = ref(false)
 const lastTapTime = ref(0)
 let tapCount = 0
 let tapTimeout: number | null = null
+let initialDistance = 0
 
 function checkMobile() {
   isMobile.value = window.innerWidth <= 768
@@ -39,19 +43,54 @@ async function downloadCurrentPhoto() {
 }
 
 function handleTouchStart(e: TouchEvent) {
-  touchStartX.value = e.touches[0].clientX
+  if (e.touches.length === 1) {
+    touchStartX.value = e.touches[0].clientX
+    touchStartY.value = e.touches[0].clientY
+    isZooming.value = false
+  } else if (e.touches.length === 2) {
+    isZooming.value = true
+    const dx = e.touches[0].clientX - e.touches[1].clientX
+    const dy = e.touches[0].clientY - e.touches[1].clientY
+    initialDistance = Math.sqrt(dx * dx + dy * dy)
+    e.preventDefault()
+  }
+}
+
+function handleTouchMove(e: TouchEvent) {
+  if (isZooming.value && e.touches.length === 2) {
+    const dx = e.touches[0].clientX - e.touches[1].clientX
+    const dy = e.touches[0].clientY - e.touches[1].clientY
+    const currentDistance = Math.sqrt(dx * dx + dy * dy)
+    
+    if (initialDistance > 0) {
+      scale.value = Math.max(1, Math.min(3, currentDistance / initialDistance))
+    }
+    e.preventDefault()
+  }
 }
 
 function handleTouchEnd(e: TouchEvent) {
-  const touchEndX = e.changedTouches[0].clientX
-  const diff = touchStartX.value - touchEndX
-
-  if (Math.abs(diff) > 50) {
-    if (diff > 0) {
-      nextPhoto()
-    } else {
-      previousPhoto()
+  if (!isZooming.value && e.changedTouches.length === 1) {
+    const touchEndX = e.changedTouches[0].clientX
+    const touchEndY = e.changedTouches[0].clientY
+    const diffX = Math.abs(touchStartX.value - touchEndX)
+    const diffY = Math.abs(touchStartY.value - touchEndY)
+    
+    if (diffX > 30 && diffY < 50 && scale.value === 1) {
+      if (touchStartX.value > touchEndX) {
+        nextPhoto()
+      } else {
+        previousPhoto()
+      }
     }
+  }
+  
+  isZooming.value = false
+  
+  if (scale.value > 1) {
+    setTimeout(() => {
+      scale.value = 1
+    }, 3000)
   }
 }
 
@@ -115,12 +154,14 @@ onMounted(() => {
   window.addEventListener('resize', checkMobile)
   document.addEventListener('keydown', handleKeydown)
   document.body.classList.add('no-scroll')
+  document.documentElement.style.overflow = 'hidden'
 })
 
 onUnmounted(() => {
   window.removeEventListener('resize', checkMobile)
   document.removeEventListener('keydown', handleKeydown)
   document.body.classList.remove('no-scroll')
+  document.documentElement.style.overflow = ''
   if (tapTimeout) {
     clearTimeout(tapTimeout)
   }
@@ -150,11 +191,20 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <div class="MediaViewerSlides" @touchstart="handleTouchStart" @touchend="handleTouchEnd"
+    <div class="MediaViewerSlides" 
+      @touchstart="handleTouchStart" 
+      @touchmove="handleTouchMove" 
+      @touchend="handleTouchEnd"
       @click="handleClickOutside">
       <div class="current-image-container">
-        <img :src="currentPhoto?.url" :alt="currentPhoto?.filename" class="current-image" draggable="false"
-          @click="handleImageClick" />
+        <img 
+          :src="currentPhoto?.url" 
+          :alt="currentPhoto?.filename" 
+          class="current-image" 
+          draggable="false"
+          @click="handleImageClick"
+          :style="{ transform: scale > 1 ? `scale(${scale})` : 'none' }"
+        />
       </div>
 
       <button v-if="!isMobile" class="navigation prev" @click.stop="previousPhoto" aria-label="Previous">
@@ -172,8 +222,6 @@ onUnmounted(() => {
   </div>
 </template>
 
-
-
 <style scoped>
 .MediaViewer {
   position: fixed;
@@ -186,6 +234,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  touch-action: none;
 }
 
 .media-viewer-header {
@@ -248,7 +297,7 @@ onUnmounted(() => {
   justify-content: center;
   width: 100%;
   height: 100%;
-  touch-action: pan-y pinch-zoom;
+  touch-action: none;
 }
 
 .current-image-container {
@@ -259,6 +308,20 @@ onUnmounted(() => {
   justify-content: center;
   padding: 0;
   margin: 0;
+  touch-action: none;
+}
+
+.current-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  transition: transform 0.3s ease;
+  transform-origin: center center;
+  -webkit-user-drag: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: none;
 }
 
 @media (max-width: 768px) {
@@ -270,13 +333,6 @@ onUnmounted(() => {
     object-position: center !important;
     display: block !important;
   }
-
-  .header-actions {
-  display: flex;
-  justify-content: space-between;
-  width: 100%;
-  gap: 8px;
-}
 
   .current-image-container {
     width: 100vw !important;
@@ -385,12 +441,5 @@ onUnmounted(() => {
 
 :deep(*) {
   box-sizing: border-box;
-}
-
-.current-image {
-  -webkit-user-drag: none;
-  user-select: none;
-  -webkit-touch-callout: none;
-  -webkit-tap-highlight-color: transparent;
 }
 </style>
