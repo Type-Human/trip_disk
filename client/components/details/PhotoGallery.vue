@@ -326,7 +326,6 @@ function handleLoadMore() {
           :src="getThumbnailUrl(photo)"
           :alt="photo.filename"
           class="photo-image"
-          loading="lazy"
           decoding="async"
         >
       </div>
