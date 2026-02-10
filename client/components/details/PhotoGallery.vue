@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Photo } from '../../types/trip'
-import { computed, ref, watch, onMounted } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 const props = defineProps<{
   photos: Photo[]
@@ -17,35 +17,25 @@ const emit = defineEmits<{
 
 const API_BASE = ((import.meta as any).env?.VITE_API_URL || '/api').replace(/\/api\/?$/, '')
 
-const thumbnailCache = ref<Map<string, string>>(new Map())
+function getPhotoUrl(photo: Photo): string {
+  if (photo.url.startsWith('blob:'))
+    return photo.url
+  if (photo.url.startsWith('http'))
+    return photo.url
+  return `${API_BASE}${photo.url}`
+}
 
 function getThumbnailUrl(photo: Photo): string {
-  const cacheKey = `${photo.id}_thumbnail`
-  
-  if (thumbnailCache.value.has(cacheKey)) {
-    return thumbnailCache.value.get(cacheKey)!
-  }
-  
-  let url = ''
   if (photo.thumbnailUrl) {
-    if (photo.thumbnailUrl.startsWith('blob:')) url = photo.thumbnailUrl
-    else if (photo.thumbnailUrl.startsWith('http')) url = photo.thumbnailUrl
-    else url = `${API_BASE}${photo.thumbnailUrl}`
-  } else {
-    if (photo.url.startsWith('blob:')) url = photo.url
-    else if (photo.url.startsWith('http')) url = photo.url
-    else url = `${API_BASE}${photo.url}`
+    if (photo.thumbnailUrl.startsWith('blob:')) return photo.thumbnailUrl
+    if (photo.thumbnailUrl.startsWith('http')) return photo.thumbnailUrl
+    return `${API_BASE}${photo.thumbnailUrl}`
   }
-  
-  thumbnailCache.value.set(cacheKey, url)
-  return url
+  return getPhotoUrl(photo)
 }
 
 const selectedIds = ref<Set<string>>(new Set())
 const showToolbar = ref(false)
-const loadedCount = ref(0)
-const isLoading = ref(false)
-const batchSize = 40
 
 const selectedCount = computed(() => selectedIds.value.size)
 
@@ -58,30 +48,6 @@ watch(() => props.selectionMode, (newValue) => {
     showToolbar.value = false
   }
 })
-
-function loadMore() {
-  if (isLoading.value || loadedCount.value >= props.photos.length) return
-  
-  isLoading.value = true
-  
-  requestAnimationFrame(() => {
-    const newCount = Math.min(loadedCount.value + batchSize, props.photos.length)
-    loadedCount.value = newCount
-    isLoading.value = false
-    
-    if (newCount < props.photos.length) {
-      setTimeout(loadMore, 100)
-    }
-  })
-}
-
-watch(() => props.photos, () => {
-  loadedCount.value = Math.min(batchSize, props.photos.length)
-  
-  if (props.photos.length > batchSize) {
-    setTimeout(loadMore, 200)
-  }
-}, { immediate: true })
 
 function toggleSelect(photoId: string) {
   const next = new Set(selectedIds.value)
@@ -123,55 +89,11 @@ function deselectAll() {
 function handleCancel() {
   emit('cancelSelection')
 }
-
-const displayPhotos = computed(() => {
-  return props.photos.slice(0, loadedCount.value)
-})
 </script>
 
 <template>
   <div class="photo-gallery">
-    <div v-if="showToolbar && selectionMode" class="selection-toolbar">
-      <div class="toolbar-info">
-        <span class="selected-count">Выбрано: {{ selectedCount }}</span>
-      </div>
 
-      <div class="toolbar-actions">
-        <button
-          v-if="selectedCount < photos.length"
-          class="toolbar-btn select-all-btn"
-          @click="selectAll"
-        >
-          Выбрать все
-        </button>
-
-        <button
-          v-if="selectedCount > 0"
-          class="toolbar-btn deselect-btn"
-          @click="deselectAll"
-        >
-          Снять всё
-        </button>
-
-        <button
-          v-if="selectedCount > 0"
-          class="toolbar-btn delete-btn"
-          @click="deleteSelected"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <path d="M6 19C6 20.1 6.9 21 8 21H16C17.1 21 18 20.1 18 19V7H6V19ZM19 4H15.5L14.5 3H9.5L8.5 4H5V6H19V4Z" fill="#FF0000" />
-          </svg>
-          Удалить ({{ selectedCount }})
-        </button>
-
-        <button
-          class="toolbar-btn cancel-btn"
-          @click="handleCancel"
-        >
-          Отмена
-        </button>
-      </div>
-    </div>
 
     <div v-if="photos.length === 0" class="empty-state">
       <div class="empty-icon">
@@ -186,35 +108,43 @@ const displayPhotos = computed(() => {
     </div>
 
     <div v-else class="photos-grid">
-      <div
-        v-for="(photo, index) in displayPhotos"
-        :key="photo.id"
-        class="photo-item"
-        :class="{ selected: selectionMode && isSelected(photo.id) }"
-        @click="() => handleClick(index)"
-      >
+      <div v-for="(photo, index) in photos" :key="photo.id" class="photo-item"
+        :class="{ selected: selectionMode && isSelected(photo.id) }" @click="() => handleClick(index)">
 
         <div v-if="selectionMode" class="photo-checkbox">
-          <input
-            type="checkbox"
-            :checked="isSelected(photo.id)"
-            @click.stop="toggleSelect(photo.id)"
-          >
+          <input type="checkbox" :checked="isSelected(photo.id)" @click.stop="toggleSelect(photo.id)">
           <span class="checkmark" />
         </div>
 
-        <img
-          :src="getThumbnailUrl(photo)"
-          :alt="photo.filename"
-          class="photo-image"
-          loading="lazy"
-          decoding="async"
-        >
+        <img :src="getThumbnailUrl(photo)" :alt="photo.filename" class="photo-image" loading="lazy" decoding="async">
       </div>
     </div>
+  </div>
+  <div v-if="showToolbar && selectionMode" class="selection-toolbar">
+    <div class="toolbar-info">
+      <span class="selected-count">Выбрано: {{ selectedCount }}</span>
+    </div>
 
-    <div v-if="loadedCount < photos.length" class="loading-indicator">
-      <div class="spinner"></div>
+    <div class="toolbar-actions">
+      <button v-if="selectedCount < photos.length" class="toolbar-btn select-all-btn" @click="selectAll">
+        Выбрать все
+      </button>
+
+      <button v-if="selectedCount > 0" class="toolbar-btn deselect-btn" @click="deselectAll">
+        Снять всё
+      </button>
+
+      <button v-if="selectedCount > 0" class="toolbar-btn delete-btn" @click="deleteSelected">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+          <path d="M6 19C6 20.1 6.9 21 8 21H16C17.1 21 18 20.1 18 19V7H6V19ZM19 4H15.5L14.5 3H9.5L8.5 4H5V6H19V4Z"
+            fill="#FF0000" />
+        </svg>
+        Удалить
+      </button>
+
+      <button class="toolbar-btn cancel-btn" @click="handleCancel">
+        Отмена
+      </button>
     </div>
   </div>
 </template>
@@ -223,22 +153,28 @@ const displayPhotos = computed(() => {
 .photo-gallery {
   width: 100%;
   contain: content;
+  min-height: 100vh;
+  padding-bottom: 70px;
+  position: relative;
 }
 
 .selection-toolbar {
   background: white;
   padding: 12px;
-  margin-bottom: 16px;
+  margin: 0 -4px 16px -4px;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   animation: slideDown 0.2s ease-out;
   border: 1px solid #e0e0e0;
-  position: sticky;
-  top: 0;
+  position: fixed;
+  top: auto;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  margin: 0;
   z-index: 10;
   backdrop-filter: blur(10px);
   background: rgba(255, 255, 255, 0.95);
-  will-change: transform;
 }
 
 @keyframes slideDown {
@@ -246,6 +182,7 @@ const displayPhotos = computed(() => {
     transform: translateY(-20px);
     opacity: 0;
   }
+
   to {
     transform: translateY(0);
     opacity: 1;
@@ -342,7 +279,7 @@ const displayPhotos = computed(() => {
 
 .photos-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 12px;
   contain: layout style;
 }
@@ -369,10 +306,7 @@ const displayPhotos = computed(() => {
     z-index: 1;
   }
 
-  &.selected {
-    border: 2px solid #0066cc;
-    box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.2);
-  }
+  &.selected {}
 }
 
 .photo-checkbox {
@@ -388,7 +322,7 @@ const displayPhotos = computed(() => {
     height: 22px;
     cursor: pointer;
 
-    &:checked + .checkmark {
+    &:checked+.checkmark {
       background: #0066cc;
       border-color: #0066cc;
 
@@ -424,7 +358,7 @@ const displayPhotos = computed(() => {
 
 .photo-image {
   width: 100%;
-  height: 180px;
+  height: 160px;
   object-fit: cover;
   display: block;
   pointer-events: none;
@@ -434,27 +368,11 @@ const displayPhotos = computed(() => {
   transform: translateZ(0);
 }
 
-.loading-indicator {
-  text-align: center;
-  padding: 20px;
-
-  .spinner {
-    display: inline-block;
-    width: 40px;
-    height: 40px;
-    border: 3px solid #f3f3f3;
-    border-top: 3px solid #0066cc;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-  }
-
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-}
-
 @media (max-width: 768px) {
+  .photo-gallery {
+    padding: 0 4px 70px 4px;
+  }
+
   .selection-toolbar {
     position: fixed;
     top: auto;
@@ -464,13 +382,17 @@ const displayPhotos = computed(() => {
     margin: 0;
     border-radius: 16px 16px 0 0;
     animation: slideUp 0.3s ease-out;
-    z-index: 100;
+    z-index: 1000;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+    border: 1px solid #e0e0e0;
+    border-bottom: none;
   }
 
   @keyframes slideUp {
     from {
       transform: translateY(100%);
     }
+
     to {
       transform: translateY(0);
     }
@@ -484,7 +406,7 @@ const displayPhotos = computed(() => {
     flex: 1;
     justify-content: center;
     padding: 12px;
-    font-size: 15px;
+    font-size: 11px;
     min-width: 0;
   }
 
@@ -495,7 +417,7 @@ const displayPhotos = computed(() => {
 
   .photo-item {
     border-radius: 10px;
-    
+
     &:hover {
       transform: none;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
@@ -522,7 +444,7 @@ const displayPhotos = computed(() => {
   .photos-grid {
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   }
-  
+
   .photo-image {
     height: 200px;
   }
@@ -532,7 +454,7 @@ const displayPhotos = computed(() => {
   .photos-grid {
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   }
-  
+
   .photo-image {
     height: 220px;
   }
