@@ -19,16 +19,17 @@ const photos = ref<Photo[]>([])
 const folders = ref<Folder[]>([
   { id: 'all', name: 'Все фото', tripId, createdAt: new Date().toISOString() },
 ])
+const filteredPhotosCache = ref<Map<string, Photo[]>>(new Map())
 const activeFolder = ref('all')
 const showUpload = ref(false)
 const showCreateFolder = ref(false)
 const showPhotoViewer = ref(false)
 const currentPhotoIndex = ref(0)
 const isLoading = ref(false)
-const isUploading = ref(false) 
+const isUploading = ref(false)
 const showMobileMenu = ref(false)
 const showDeleteModal = ref(false)
-const folderIdDelete = ref()
+const folderIdDelete = ref<string | false>(false)
 const isDeleting = ref(false)
 
 const selectionMode = ref(false)
@@ -79,12 +80,9 @@ async function fetchTripData() {
 async function handlePhotoUpload(files: File[], folderId?: string) {
   try {
     isUploading.value = true
-
     const targetFolderId = folderId || (activeFolder.value !== 'all' ? activeFolder.value : undefined)
     const uploadedPhotos = await tripApi.uploadPhotos(tripId, files, targetFolderId)
-    
-    // ИСПРАВЛЕНО: добавляем в начало
-    photos.value.unshift(...uploadedPhotos)
+    photos.value.push(...uploadedPhotos)
 
     showUpload.value = false
   }
@@ -134,14 +132,20 @@ async function confirmDeleteModal() {
     folders.value = folders.value.filter(f => f.id !== folderIdDelete.value)
     photos.value = photos.value.filter(p => p.folderId !== folderIdDelete.value)
 
+    filteredPhotosCache.value.clear()
+
     showDeleteModal.value = false
-    folderIdDelete.value = false
-    if (activeFolder.value === folderIdDelete.value)
+
+    if (activeFolder.value === String(folderIdDelete.value)) {
       activeFolder.value = 'all'
-  } catch (e) {
-    isDeleting.value = false
-    console.error(e)
-  } finally {
+    }
+
+    folderIdDelete.value = false
+  }
+  catch (error) {
+    console.error(error)
+  }
+  finally {
     isDeleting.value = false
   }
 }
@@ -154,8 +158,7 @@ function closeDeleteModal() {
 }
 
 function openPhotoViewer(index: number) {
-  if (selectionMode.value)
-    return
+  if (selectionMode.value) return
   currentPhotoIndex.value = index
   showPhotoViewer.value = true
 }
@@ -183,12 +186,14 @@ onMounted(() => {
           + Папка
         </button>
       </div>
+
       <button v-if="!selectionMode && filteredPhotos.length > 0" class="manage-photos-btn"
         :title="selectionMode ? 'Выйти из режима выбора' : 'Управление фотографиями'" @click="startSelection">
         <Icon :size="20" filled color="#FF0000">
           <path d="M6 19C6 20.1 6.9 21 8 21H16C17.1 21 18 20.1 18 19V7H6V19ZM19 4H15.5L14.5 3H9.5L8.5 4H5V6H19V4Z" />
         </Icon>
       </button>
+
       <div class="mobile-menu">
         <button class="mobile-menu-button" @click="showMobileMenu = !showMobileMenu">
           <span class="menu-dots">⋮</span>
@@ -241,7 +246,6 @@ onMounted(() => {
 
     <DeleteModal v-if="folderIdDelete && showDeleteModal" @confirm="confirmDeleteModal" :loading="isDeleting"
       @close="closeDeleteModal()" />
-
   </div>
 </template>
 
@@ -333,7 +337,6 @@ onMounted(() => {
   flex-shrink: 0;
 
   &:hover {
-
     transform: translateY(-1px);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   }
@@ -366,7 +369,6 @@ onMounted(() => {
   scrollbar-width: none;
   -ms-overflow-style: none;
 
-
   &::-webkit-scrollbar {
     display: none;
     width: 0;
@@ -374,29 +376,8 @@ onMounted(() => {
     background: transparent;
   }
 
-
-  & {
-    scrollbar-width: none;
-    -ms-overflow-style: none
-  }
-
-
-  @media (max-width: 639px) {
-    &::-webkit-scrollbar {
-      display: none;
-    }
-
-
-    -webkit-overflow-scrolling: touch;
-
-
-
-  }
-
-
   @media (min-width: 640px) {
     gap: 8px;
-
 
     &::-webkit-scrollbar {
       display: block;
@@ -420,7 +401,6 @@ onMounted(() => {
   }
 }
 
-
 .folder-tab {
   padding: 10px 14px;
   padding-right: 5px;
@@ -434,7 +414,7 @@ onMounted(() => {
   justify-content: space-between;
   gap: 6px;
   transition: all 0.2s;
-   min-width: 110px;
+  min-width: 110px;
   font-size: 13px;
   flex-shrink: 0;
 
@@ -482,76 +462,19 @@ onMounted(() => {
 
 .folder-tab-delete {
   margin-left: 6px;
-  padding: 0px;
-  font-size: 12px;
-  line-height: 1;
+  padding: 2px 6px;
+  background: transparent;
   border: none;
-  color: white;
-  border-radius: 4px;
-  background-color: inherit;
+  color: #666;
   cursor: pointer;
-}
-
-.selection-toolbar {
-  background: white;
-  padding: 12px;
-  margin-bottom: 16px;
-  border-radius: 12px;
-  border: 1px solid #e0e0e0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  animation: fadeIn 0.2s ease-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.toolbar-info {
-  margin-bottom: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #eee;
-}
-
-.selected-count {
-  font-size: 15px;
-  font-weight: 500;
-  color: #333;
-}
-
-.toolbar-actions {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.toolbar-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 14px;
-  border: none;
-  border-radius: 8px;
   font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
+  line-height: 1;
+  border-radius: 4px;
 
-  &:active {
-    transform: scale(0.98);
+  &:hover {
+    background: rgba(0, 0, 0, 0.1);
+    color: #ff4444;
   }
-}
-
-.cancel-btn {
-  background: #f0f0f0;
-  color: #333;
 }
 
 .btn-primary,
@@ -691,6 +614,16 @@ onMounted(() => {
   }
 }
 
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
 @keyframes slideUp {
   from {
     transform: translateY(100%);
@@ -731,7 +664,5 @@ onMounted(() => {
   .folders-container {
     gap: 8px;
   }
-
-
 }
 </style>

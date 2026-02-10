@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { onUnmounted, ref } from 'vue'
-import CustomSelect from '../ui/CustomSelect.vue';
 
 const props = defineProps<{
   folders?: Array<{ id: string; name: string }>
@@ -17,6 +16,9 @@ const files = ref<File[]>([])
 const isDragging = ref(false)
 const selectedFolder = ref<string | null>(props.selectedFolderId || '')
 const objectUrls = ref<Map<File, string>>(new Map())
+
+
+const MAX_FILES = 100
 
 function getObjectUrl(file: File): string {
   if (!objectUrls.value.has(file)) {
@@ -60,12 +62,21 @@ function handleFileSelect(e: Event) {
   const input = e.target as HTMLInputElement
   const selectedFiles = Array.from(input.files || [])
   addFiles(selectedFiles)
+  
+
+  input.value = ''
 }
 
 function addFiles(newFiles: File[]) {
   const imageFiles = newFiles.filter(file => file.type.startsWith('image/'))
-  const validFiles = imageFiles.filter(file => file.size <= 10 * 1024 * 1024)
-  files.value = [...files.value, ...validFiles]
+  const validFiles = imageFiles.filter(file => file.size <= 10 * 1024 * 1024) 
+  
+
+  const remainingSlots = MAX_FILES - files.value.length
+  const filesToAdd = validFiles.slice(0, remainingSlots)
+  
+  
+  files.value = [...files.value, ...filesToAdd]
 }
 
 function removeFile(index: number) {
@@ -77,11 +88,7 @@ function removeFile(index: number) {
 function handleUpload() {
   if (files.value.length === 0) return
 
-
   emit('upload', files.value, selectedFolder.value || undefined)
-
-  files.value = []
-  selectedFolder.value = ''
 }
 
 function formatFileSize(bytes: number): string {
@@ -89,20 +96,33 @@ function formatFileSize(bytes: number): string {
   const k = 1024
   const sizes = ['Bytes', 'KB', 'MB', 'GB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return `${Number.parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`
+  return `${parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`
+}
+
+
+function handleKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape' && !props.isUploading) {
+    emit('close')
+  }
 }
 
 onUnmounted(() => {
   cleanupUrls()
+  document.removeEventListener('keydown', handleKeydown)
 })
+
+document.addEventListener('keydown', handleKeydown)
 </script>
 
 <template>
-  <div class="modal-overlay" @click="emit('close')">
+  <div class="modal-overlay" @click.self="emit('close')">
     <div class="modal" @click.stop>
       <div class="modal-header">
         <h2>Загрузить фото</h2>
-        <button class="close-btn" :disabled="props.isUploading" @click="emit('close')">
+        <div class="file-counter" v-if="files.length > 0">
+          {{ files.length }}/{{ MAX_FILES }}
+        </div>
+        <button class="close-btn" :disabled="props.isUploading" @click="emit('close')" @keydown.enter="emit('close')">
           ✕
         </button>
       </div>
@@ -119,7 +139,8 @@ onUnmounted(() => {
             Выбрать файлы
           </label>
           <p class="hint">
-            Поддерживаются JPG, PNG, GIF, WebP (до 10MB)
+            Поддерживаются JPG, PNG, GIF, WebP (до 10MB)<br>
+            Максимум: {{ MAX_FILES }} файлов
           </p>
         </div>
       </div>
@@ -181,6 +202,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   z-index: 900;
+  backdrop-filter: blur(3px);
 }
 
 .modal {
@@ -191,23 +213,14 @@ onUnmounted(() => {
   max-height: 90vh;
   overflow-y: auto;
   animation: slideUp 0.3s ease;
-  scrollbar-width: none;
-  -ms-overflow-style: none; 
-}
-
-
-.modal::-webkit-scrollbar {
-  display: none;
-  width: 0;
-  height: 0;
-  background: transparent;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 24px;
+  padding: 20px 24px;
   border-bottom: 1px solid #e5e7eb;
   position: sticky;
   top: 0;
@@ -219,6 +232,16 @@ onUnmounted(() => {
   margin: 0;
   font-size: 20px;
   font-weight: 600;
+  flex: 1;
+}
+
+.file-counter {
+  font-size: 14px;
+  color: #666;
+  background: #f3f4f6;
+  padding: 4px 12px;
+  border-radius: 20px;
+  margin-right: 12px;
 }
 
 .close-btn {
@@ -226,8 +249,12 @@ onUnmounted(() => {
   border: none;
   font-size: 24px;
   cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
+  padding: 4px 12px;
+  border-radius: 8px;
+  line-height: 1;
+  transition: all 0.2s;
+  min-width: 44px;
+  min-height: 44px;
 }
 
 .close-btn:hover:not(:disabled) {
@@ -241,12 +268,13 @@ onUnmounted(() => {
 
 .drop-zone {
   margin: 24px;
-  padding: 48px 24px;
+  padding: 40px 24px;
   border: 2px dashed #d1d5db;
   border-radius: 12px;
   text-align: center;
   transition: all 0.3s ease;
   cursor: pointer;
+  background: #fafafa;
 }
 
 .drop-zone.dragging {
@@ -257,21 +285,26 @@ onUnmounted(() => {
 .upload-icon {
   font-size: 48px;
   margin-bottom: 16px;
+  opacity: 0.7;
 }
 
 .browse-btn {
   display: inline-block;
-  padding: 12px 24px;
+  padding: 12px 28px;
   background: #6366f1;
   color: white;
   border-radius: 8px;
   cursor: pointer;
   margin: 16px 0;
   transition: background 0.2s;
+  font-weight: 500;
+  font-size: 15px;
+  border: none;
 }
 
 .browse-btn:hover {
   background: #4f46e5;
+  transform: translateY(-1px);
 }
 
 .browse-btn input[type='file'] {
@@ -280,8 +313,9 @@ onUnmounted(() => {
 
 .hint {
   color: #6b7280;
-  font-size: 14px;
+  font-size: 13px;
   margin: 8px 0 0 0;
+  line-height: 1.4;
 }
 
 .folder-select {
@@ -290,42 +324,15 @@ onUnmounted(() => {
   z-index: 10;
 }
 
-:deep(.custom-select) {
-  position: relative;
-}
-
-:deep(.custom-select__dropdown) {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  z-index: 1000;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  max-height: 200px;
-  overflow-y: auto;
-  margin-top: 4px;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-:deep(.custom-select__dropdown::-webkit-scrollbar) {
-  display: none;
-  width: 0;
-  height: 0;
-  background: transparent;
-}
-
 .file-list {
-  margin: 24px;
+  margin: 0 24px 24px 24px;
 }
 
 .file-list h3 {
   margin: 0 0 16px 0;
   font-size: 16px;
   font-weight: 600;
+  color: #333;
 }
 
 .files-grid {
@@ -334,15 +341,7 @@ onUnmounted(() => {
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   padding: 8px;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.files-grid::-webkit-scrollbar {
-  display: none;
-  width: 0;
-  height: 0;
-  background: transparent;
+  background: #fafafa;
 }
 
 .file-item {
@@ -350,9 +349,13 @@ onUnmounted(() => {
   align-items: center;
   padding: 12px;
   border-bottom: 1px solid #f3f4f6;
+  background: white;
+  border-radius: 6px;
+  margin-bottom: 8px;
 }
 
 .file-item:last-child {
+  margin-bottom: 0;
   border-bottom: none;
 }
 
@@ -363,12 +366,15 @@ onUnmounted(() => {
   overflow: hidden;
   flex-shrink: 0;
   margin-right: 12px;
+  border: 1px solid #eee;
+  background: #f5f5f5;
 }
 
 .file-preview img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block;
 }
 
 .file-icon {
@@ -383,12 +389,14 @@ onUnmounted(() => {
 
 .file-info {
   flex: 1;
+  min-width: 0;
 }
 
 .file-name {
   margin: 0 0 4px 0;
   font-size: 14px;
   font-weight: 500;
+  color: #333;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -397,20 +405,28 @@ onUnmounted(() => {
 .file-size {
   margin: 0;
   font-size: 12px;
-  color: #6b7280;
+  color: #666;
 }
 
 .remove-btn {
   background: none;
   border: none;
-  color: #6b7280;
+  color: #999;
   cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 4px;
+  padding: 8px;
+  border-radius: 6px;
+  font-size: 18px;
+  line-height: 1;
+  transition: all 0.2s;
+  min-width: 36px;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .remove-btn:hover:not(:disabled) {
-  background: #f3f4f6;
+  background: #fee;
   color: #ef4444;
 }
 
@@ -422,57 +438,60 @@ onUnmounted(() => {
 .modal-actions {
   display: flex;
   gap: 12px;
-  padding: 24px;
+  padding: 20px 24px;
   border-top: 1px solid #e5e7eb;
-  position: sticky;
-  bottom: 0;
   background: white;
-  z-index: 1;
+  border-radius: 0 0 16px 16px;
 }
 
 .btn-primary,
 .btn-secondary {
   flex: 1;
-  padding: 12px;
-  border-radius: 8px;
-  font-size: 14px;
+  padding: 14px 20px;
+  border-radius: 10px;
+  font-size: 15px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 44px;
+  min-height: 48px;
+  border: 2px solid transparent;
 }
 
 .btn-primary {
   background: #6366f1;
   color: white;
-  border: none;
 }
 
 .btn-primary:hover:not(:disabled) {
   background: #4f46e5;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 }
 
 .btn-primary:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  transform: none !important;
 }
 
 .btn-secondary {
   background: white;
   color: #374151;
-  border: 1px solid #d1d5db;
+  border-color: #d1d5db;
 }
 
 .btn-secondary:hover:not(:disabled) {
   background: #f9fafb;
+  transform: translateY(-1px);
 }
 
 .btn-secondary:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  transform: none !important;
 }
 
 .btn-content {
@@ -483,8 +502,8 @@ onUnmounted(() => {
 }
 
 .btn-spinner {
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   border: 2px solid rgba(255, 255, 255, 0.3);
   border-top: 2px solid white;
   border-radius: 50%;
@@ -492,13 +511,8 @@ onUnmounted(() => {
 }
 
 @keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-
-  100% {
-    transform: rotate(360deg);
-  }
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 @keyframes slideUp {
@@ -506,7 +520,6 @@ onUnmounted(() => {
     transform: translateY(20px);
     opacity: 0;
   }
-
   to {
     transform: translateY(0);
     opacity: 1;
@@ -514,4 +527,73 @@ onUnmounted(() => {
 }
 
 
+@media (max-width: 768px) {
+  .modal-overlay {
+    align-items: flex-end;
+  }
+  
+  .modal {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 20px 20px 0 0;
+    max-height: 90vh;
+    margin-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .modal-header {
+    padding: 16px 20px;
+  }
+  
+  .close-btn {
+    padding: 8px;
+    min-width: 40px;
+    min-height: 40px;
+  }
+  
+  .drop-zone {
+    margin: 20px;
+    padding: 30px 20px;
+  }
+  
+  .browse-btn {
+    padding: 14px 24px;
+    font-size: 14px;
+  }
+  
+  .file-list {
+    margin: 0 20px 20px 20px;
+  }
+  
+  .files-grid {
+    max-height: 250px;
+  }
+  
+  .file-item {
+    padding: 10px;
+  }
+  
+  .file-preview {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .modal-actions {
+    padding: 16px 20px;
+    gap: 8px;
+  }
+  
+  .btn-primary,
+  .btn-secondary {
+    padding: 12px 16px;
+    font-size: 14px;
+    min-height: 44px;
+  }
+}
+
+
+@supports (padding: max(0px)) {
+  .modal {
+    padding-bottom: max(20px, env(safe-area-inset-bottom));
+  }
+}
 </style>

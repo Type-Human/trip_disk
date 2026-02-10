@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Photo } from '../../types/trip'
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, nextTick } from 'vue'
 
 const props = defineProps<{
   photos: Photo[]
@@ -25,20 +25,12 @@ function getPhotoUrl(photo: Photo): string {
   return `${API_BASE}${photo.url}`
 }
 
-function getThumbnailUrl(photo: Photo): string {
-  if (photo.thumbnailUrl) {
-    if (photo.thumbnailUrl.startsWith('blob:')) return photo.thumbnailUrl
-    if (photo.thumbnailUrl.startsWith('http')) return photo.thumbnailUrl
-    return `${API_BASE}${photo.thumbnailUrl}`
-  }
-  return getPhotoUrl(photo)
-}
-
 const selectedIds = ref<Set<string>>(new Set())
 const showToolbar = ref(false)
 
 const selectedCount = computed(() => selectedIds.value.size)
 
+// Используем только props.photos напрямую - никаких дополнительных массивов
 watch(() => props.selectionMode, (newValue) => {
   if (newValue) {
     showToolbar.value = true
@@ -79,7 +71,7 @@ function deleteSelected() {
 }
 
 function selectAll() {
-  props.photos.forEach(photo => selectedIds.value.add(photo.id))
+  selectedIds.value = new Set(props.photos.map(photo => photo.id))
 }
 
 function deselectAll() {
@@ -93,8 +85,6 @@ function handleCancel() {
 
 <template>
   <div class="photo-gallery">
-
-
     <div v-if="photos.length === 0" class="empty-state">
       <div class="empty-icon">
         📷
@@ -110,16 +100,17 @@ function handleCancel() {
     <div v-else class="photos-grid">
       <div v-for="(photo, index) in photos" :key="photo.id" class="photo-item"
         :class="{ selected: selectionMode && isSelected(photo.id) }" @click="() => handleClick(index)">
-
         <div v-if="selectionMode" class="photo-checkbox">
           <input type="checkbox" :checked="isSelected(photo.id)" @click.stop="toggleSelect(photo.id)">
           <span class="checkmark" />
         </div>
 
-        <img :src="getThumbnailUrl(photo)" :alt="photo.filename" class="photo-image" loading="lazy" decoding="async">
+        <img :src="getPhotoUrl(photo)" :alt="photo.filename" class="photo-image" loading="lazy" decoding="async"
+          @load="(e: any) => e.target.classList.add('loaded')">
       </div>
     </div>
   </div>
+
   <div v-if="showToolbar && selectionMode" class="selection-toolbar">
     <div class="toolbar-info">
       <span class="selected-count">Выбрано: {{ selectedCount }}</span>
@@ -152,10 +143,8 @@ function handleCancel() {
 <style scoped lang="scss">
 .photo-gallery {
   width: 100%;
-  contain: content;
   min-height: 100vh;
   padding-bottom: 70px;
-  position: relative;
 }
 
 .selection-toolbar {
@@ -279,47 +268,41 @@ function handleCancel() {
 
 .photos-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 12px;
-  contain: layout style;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
 }
 
 .photo-item {
   position: relative;
-  border-radius: 12px;
+  border-radius: 8px;
   overflow: hidden;
-  background: white;
+  background: #f5f5f5;
   cursor: pointer;
-  transition: transform 0.15s ease-out;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-  -webkit-tap-highlight-color: transparent;
-  user-select: none;
-  -webkit-user-select: none;
-  contain: layout;
-  will-change: transform;
-  backface-visibility: hidden;
-  transform: translateZ(0);
+  transition: transform 0.2s ease;
+  aspect-ratio: 1 / 1;
+  min-height: 150px;
 
   &:hover {
-    transform: translateY(-2px) scale(1.02);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
-    z-index: 1;
+    transform: scale(1.02);
   }
 
-  &.selected {}
+  &.selected {
+    outline: 3px solid #0066cc;
+    outline-offset: -3px;
+  }
 }
 
 .photo-checkbox {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: 8px;
+  right: 8px;
   z-index: 2;
 
   input {
     position: absolute;
     opacity: 0;
-    width: 22px;
-    height: 22px;
+    width: 20px;
+    height: 20px;
     cursor: pointer;
 
     &:checked+.checkmark {
@@ -335,20 +318,20 @@ function handleCancel() {
   .checkmark {
     position: relative;
     display: block;
-    width: 22px;
-    height: 22px;
+    width: 20px;
+    height: 20px;
     background: white;
     border: 2px solid #ccc;
-    border-radius: 6px;
+    border-radius: 4px;
 
     &::after {
       content: '';
       position: absolute;
       display: none;
-      left: 6px;
-      top: 0px;
+      left: 5px;
+      top: 1px;
       width: 6px;
-      height: 11px;
+      height: 10px;
       border: solid white;
       border-width: 0 2px 2px 0;
       transform: rotate(45deg);
@@ -358,19 +341,20 @@ function handleCancel() {
 
 .photo-image {
   width: 100%;
-  height: 160px;
+  height: 100%;
   object-fit: cover;
   display: block;
-  pointer-events: none;
-  image-rendering: -webkit-optimize-contrast;
-  image-rendering: crisp-edges;
-  backface-visibility: hidden;
-  transform: translateZ(0);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+
+  &.loaded {
+    opacity: 1;
+  }
 }
 
 @media (max-width: 768px) {
   .photo-gallery {
-    padding: 0 4px 70px 4px;
+    padding: 0 8px 70px 8px;
   }
 
   .selection-toolbar {
@@ -405,68 +389,40 @@ function handleCancel() {
   .toolbar-btn {
     flex: 1;
     justify-content: center;
-    padding: 12px;
-    font-size: 11px;
+    padding: 10px;
+    font-size: 12px;
     min-width: 0;
   }
 
   .photos-grid {
     grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
+    gap: 6px;
   }
 
   .photo-item {
-    border-radius: 10px;
-
-    &:hover {
-      transform: none;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-    }
-  }
-
-  .photo-image {
-    height: 140px;
-  }
-
-  .photo-checkbox {
-    top: 8px;
-    right: 8px;
+    border-radius: 6px;
+    min-height: 140px;
   }
 }
 
 @media (min-width: 769px) and (max-width: 1024px) {
   .photos-grid {
     grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
   }
 }
 
 @media (min-width: 1025px) and (max-width: 1440px) {
   .photos-grid {
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  }
-
-  .photo-image {
-    height: 200px;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
   }
 }
 
 @media (min-width: 1441px) {
   .photos-grid {
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  }
-
-  .photo-image {
-    height: 220px;
-  }
-}
-
-@media (max-width: 360px) {
-  .photos-grid {
-    grid-template-columns: repeat(1, 1fr);
-  }
-
-  .photo-image {
-    height: 180px;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 14px;
   }
 }
 </style>
