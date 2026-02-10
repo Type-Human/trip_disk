@@ -439,6 +439,10 @@ onMounted(() => {
   &.active {
     background: #6366f1;
     color: white;
+
+    .folder-tab-delete {
+      color: white;
+    }
   }
 
   .folder-name {

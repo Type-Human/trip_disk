@@ -12,7 +12,7 @@ export class PhotoService {
   async getByTripId(tripId: string): Promise<Photo[]> {
     const db = getDatabase().getDatabase();
     const photos = db
-      .prepare("SELECT * FROM photos WHERE tripId = ? ORDER BY uploadedAt DESC")
+      .prepare("SELECT * FROM photos WHERE tripId = ? ORDER BY uploadedAt ASC")
       .all(tripId) as Photo[];
     return photos;
   }
@@ -21,7 +21,7 @@ export class PhotoService {
     const db = getDatabase().getDatabase();
     const photos = db
       .prepare(
-        "SELECT * FROM photos WHERE folderId = ? ORDER BY uploadedAt DESC",
+        "SELECT * FROM photos WHERE folderId = ? ORDER BY uploadedAt ASC",
       )
       .all(folderId) as Photo[];
     return photos;

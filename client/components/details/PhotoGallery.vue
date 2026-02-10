@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Photo } from '../../types/trip'
-import { computed, ref, watch, nextTick } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
 
 const props = defineProps<{
   photos: Photo[]
@@ -25,21 +25,56 @@ function getPhotoUrl(photo: Photo): string {
   return `${API_BASE}${photo.url}`
 }
 
+const visibleCount = ref(25)
+const loadStep = 25
+const isLoadingMore = ref(false)
+
+
+function loadMorePhotos() {
+  if (visibleCount.value >= props.photos.length) return
+  
+  isLoadingMore.value = true
+  setTimeout(() => {
+    visibleCount.value = Math.min(visibleCount.value + loadStep, props.photos.length)
+    isLoadingMore.value = false
+  }, 100)
+}
+
+
+function checkScroll() {
+  const scrollContainer = document.querySelector('.photo-gallery')
+  if (!scrollContainer) return
+  
+  const scrollTop = scrollContainer.scrollTop
+  const scrollHeight = scrollContainer.scrollHeight
+  const clientHeight = scrollContainer.clientHeight
+  
+  if (scrollTop + clientHeight >= scrollHeight - 100) {
+    loadMorePhotos()
+  }
+}
+
+
 const selectedIds = ref<Set<string>>(new Set())
 const showToolbar = ref(false)
 
 const selectedCount = computed(() => selectedIds.value.size)
 
-// Используем только props.photos напрямую - никаких дополнительных массивов
 watch(() => props.selectionMode, (newValue) => {
   if (newValue) {
     showToolbar.value = true
-  }
-  else {
+  } else {
     selectedIds.value.clear()
     showToolbar.value = false
   }
 })
+
+
+watch(() => props.photos, () => {
+  visibleCount.value = 30
+  selectedIds.value.clear()
+})
+
 
 function toggleSelect(photoId: string) {
   const next = new Set(selectedIds.value)
@@ -81,6 +116,14 @@ function deselectAll() {
 function handleCancel() {
   emit('cancelSelection')
 }
+
+
+onMounted(() => {
+  const gallery = document.querySelector('.photo-gallery')
+  if (gallery) {
+    gallery.addEventListener('scroll', checkScroll)
+  }
+})
 </script>
 
 <template>
@@ -98,18 +141,38 @@ function handleCancel() {
     </div>
 
     <div v-else class="photos-grid">
-      <div v-for="(photo, index) in photos" :key="photo.id" class="photo-item"
-        :class="{ selected: selectionMode && isSelected(photo.id) }" @click="() => handleClick(index)">
+      <div 
+        v-for="(photo, index) in photos.slice(0, visibleCount)" 
+        :key="photo.id" 
+        class="photo-item"
+        :class="{ selected: selectionMode && isSelected(photo.id) }" 
+        @click="() => handleClick(index)"
+      >
         <div v-if="selectionMode" class="photo-checkbox">
           <input type="checkbox" :checked="isSelected(photo.id)" @click.stop="toggleSelect(photo.id)">
           <span class="checkmark" />
         </div>
 
-        <img :src="getPhotoUrl(photo)" :alt="photo.filename" class="photo-image" loading="lazy" decoding="async"
-          @load="(e: any) => e.target.classList.add('loaded')">
+        <img 
+          :src="getPhotoUrl(photo)" 
+          :alt="photo.filename" 
+          class="photo-image" 
+          loading="lazy" 
+          decoding="async"
+          @load="(e: any) => e.target.classList.add('loaded')"
+        />
+        
+
+        <div class="photo-loading"></div>
       </div>
     </div>
+    
+    <div v-if="visibleCount < photos.length" class="loading-more" @click="loadMorePhotos">
+      <div v-if="isLoadingMore" class="spinner"></div>
+      <span v-else>Показать еще</span>
+    </div>
   </div>
+
 
   <div v-if="showToolbar && selectionMode" class="selection-toolbar">
     <div class="toolbar-info">
@@ -144,37 +207,70 @@ function handleCancel() {
 .photo-gallery {
   width: 100%;
   min-height: 100vh;
-  padding-bottom: 70px;
+  padding-bottom: 80px;
+  position: relative;
+}
+
+
+
+.loading-more {
+  text-align: center;
+  padding: 20px;
+  color: #666;
+  cursor: pointer;
+  
+  .spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid #f3f4f6;
+    border-top: 3px solid #6366f1;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto;
+  }
+  
+  span {
+    display: inline-block;
+    padding: 8px 16px;
+    background: #f3f4f6;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+    
+    &:hover {
+      background: #e5e7eb;
+    }
+  }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .selection-toolbar {
   background: white;
-  padding: 12px;
-  margin: 0 -4px 16px -4px;
+  padding: 12px 16px;
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  animation: slideDown 0.2s ease-out;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+  animation: slideUp 0.2s ease-out;
   border: 1px solid #e0e0e0;
   position: fixed;
-  top: auto;
   bottom: 0;
   left: 0;
   right: 0;
-  margin: 0;
-  z-index: 10;
+  z-index: 100;
   backdrop-filter: blur(10px);
   background: rgba(255, 255, 255, 0.95);
 }
 
-@keyframes slideDown {
+@keyframes slideUp {
   from {
-    transform: translateY(-20px);
-    opacity: 0;
+    transform: translateY(100%);
   }
-
   to {
     transform: translateY(0);
-    opacity: 1;
   }
 }
 
@@ -270,6 +366,7 @@ function handleCancel() {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 8px;
+  padding: 4px;
 }
 
 .photo-item {
@@ -280,10 +377,11 @@ function handleCancel() {
   cursor: pointer;
   transition: transform 0.2s ease;
   aspect-ratio: 1 / 1;
-  min-height: 150px;
 
   &:hover {
     transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1;
   }
 
   &.selected {
@@ -346,42 +444,45 @@ function handleCancel() {
   display: block;
   opacity: 0;
   transition: opacity 0.3s ease;
-
+  
   &.loaded {
     opacity: 1;
   }
+}
+
+.photo-loading {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+  opacity: 0.5;
+  
+  .photo-image.loaded ~ & {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+@keyframes loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 @media (max-width: 768px) {
   .photo-gallery {
     padding: 0 8px 70px 8px;
   }
+  
 
-  .selection-toolbar {
-    position: fixed;
-    top: auto;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    margin: 0;
-    border-radius: 16px 16px 0 0;
-    animation: slideUp 0.3s ease-out;
-    z-index: 1000;
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
-    border: 1px solid #e0e0e0;
-    border-bottom: none;
+  .photos-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
   }
-
-  @keyframes slideUp {
-    from {
-      transform: translateY(100%);
-    }
-
-    to {
-      transform: translateY(0);
-    }
-  }
-
+  
   .toolbar-actions {
     gap: 6px;
   }
@@ -392,16 +493,6 @@ function handleCancel() {
     padding: 10px;
     font-size: 12px;
     min-width: 0;
-  }
-
-  .photos-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 6px;
-  }
-
-  .photo-item {
-    border-radius: 6px;
-    min-height: 140px;
   }
 }
 
