@@ -49,7 +49,7 @@ export async function createApp(): Promise<Hono> {
 
   const apiRoutes = createRoutes(tripService, photoService, folderService);
   
-  // Mount API routes at root, not at /api
+
   app.route('/', apiRoutes);
 
   app.notFound((c) => {

@@ -37,6 +37,43 @@ export const tripApi = {
     return realApi.get<Photo[]>(`/trips/${tripId}/photos`);
   },
 
+  async getPhotosByTripIdPaginated(
+    tripId: string,
+    page: number = 1,
+    limit: number = 25,
+  ): Promise<{
+    photos: Photo[];
+    total: number;
+    page: number;
+    totalPages: number;
+  }> {
+    return realApi.get<{
+      photos: Photo[];
+      total: number;
+      page: number;
+      totalPages: number;
+    }>(`/photos/trip/${tripId}/paginated?page=${page}&limit=${limit}`);
+  },
+
+
+  async getPhotosByFolderIdPaginated(
+    folderId: string,
+    page: number = 1,
+    limit: number = 25,
+  ): Promise<{
+    photos: Photo[];
+    total: number;
+    page: number;
+    totalPages: number;
+  }> {
+    return realApi.get<{
+      photos: Photo[];
+      total: number;
+      page: number;
+      totalPages: number;
+    }>(`/photos/folder/${folderId}/paginated?page=${page}&limit=${limit}`);
+  },
+
   async uploadPhotos(
     tripId: string,
     files: File[],

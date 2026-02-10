@@ -243,7 +243,6 @@ onUnmounted(() => {
   width: 100%;
   right: 0;
   height: 56px;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), transparent);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -253,6 +252,8 @@ onUnmounted(() => {
 
 .header-actions {
   display: flex;
+  justify-content: space-between;
+  width: 100%;
   gap: 8px;
 }
 

@@ -4,6 +4,60 @@ import { Hono } from "hono";
 export function createPhotoRoutes(photoService: PhotoService) {
   const app = new Hono();
 
+  app.get("/trip/:tripId", async (c) => {
+    try {
+      const tripId = c.req.param("tripId");
+      const photos = await photoService.getByTripId(tripId);
+      return c.json(photos, 200);
+    } catch (error) {
+      console.error("Ошибка получения фото поездки:", error);
+      return c.json({ error: "Не удалось получить фото поездки" }, 500);
+    }
+  });
+
+
+  app.get("/trip/:tripId/paginated", async (c) => {
+    try {
+      const tripId = c.req.param("tripId");
+      const page = parseInt(c.req.query("page") || "1");
+      const limit = parseInt(c.req.query("limit") || "25");
+      
+  
+      const result = await photoService.getByTripIdPaginated(tripId, page, limit);
+      return c.json(result, 200);
+    } catch (error) {
+      console.error("Ошибка получения фото поездки (paginated):", error);
+      return c.json({ error: "Не удалось получить фото поездки" }, 500);
+    }
+  });
+
+  
+  app.get("/folder/:folderId", async (c) => {
+    try {
+      const folderId = c.req.param("folderId");
+      const photos = await photoService.getByFolderId(folderId);
+      return c.json(photos, 200);
+    } catch (error) {
+      console.error("Ошибка получения фото папки:", error);
+      return c.json({ error: "Не удалось получить фото папки" }, 500);
+    }
+  });
+
+
+  app.get("/folder/:folderId/paginated", async (c) => {
+    try {
+      const folderId = c.req.param("folderId");
+      const page = parseInt(c.req.query("page") || "1");
+      const limit = parseInt(c.req.query("limit") || "25");
+      
+      const result = await photoService.getByFolderIdPaginated(folderId, page, limit);
+      return c.json(result, 200);
+    } catch (error) {
+      console.error("Ошибка получения фото папки (paginated):", error);
+      return c.json({ error: "Не удалось получить фото папки" }, 500);
+    }
+  });
+
   app.post("/upload", async (c) => {
     try {
       const formData = await c.req.formData();

@@ -27,6 +27,85 @@ export class PhotoService {
     return photos;
   }
 
+ 
+  async getByTripIdPaginated(
+    tripId: string,
+    page: number = 1,
+    limit: number = 25,
+  ): Promise<{
+    photos: Photo[];
+    total: number;
+    page: number;
+    totalPages: number;
+  }> {
+    const db = getDatabase().getDatabase();
+
+   
+    const totalResult = db
+      .prepare("SELECT COUNT(*) as count FROM photos WHERE tripId = ?")
+      .get(tripId) as { count: number };
+
+    const total = totalResult.count;
+    const offset = (page - 1) * limit;
+
+    const photos = db
+      .prepare(
+        `SELECT * FROM photos WHERE tripId = ? 
+         ORDER BY uploadedAt ASC 
+         LIMIT ? OFFSET ?`,
+      )
+      .all(tripId, limit, offset) as Photo[];
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      photos,
+      total,
+      page,
+      totalPages,
+    };
+  }
+
+
+  async getByFolderIdPaginated(
+    folderId: string,
+    page: number = 1,
+    limit: number = 25,
+  ): Promise<{
+    photos: Photo[];
+    total: number;
+    page: number;
+    totalPages: number;
+  }> {
+    const db = getDatabase().getDatabase();
+
+
+    const totalResult = db
+      .prepare("SELECT COUNT(*) as count FROM photos WHERE folderId = ?")
+      .get(folderId) as { count: number };
+
+    const total = totalResult.count;
+    const offset = (page - 1) * limit;
+
+
+    const photos = db
+      .prepare(
+        `SELECT * FROM photos WHERE folderId = ? 
+         ORDER BY uploadedAt ASC 
+         LIMIT ? OFFSET ?`,
+      )
+      .all(folderId, limit, offset) as Photo[];
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      photos,
+      total,
+      page,
+      totalPages,
+    };
+  }
+
   async upload(
     tripId: string,
     files: File[],
@@ -79,7 +158,6 @@ export class PhotoService {
   }
 
   async delete(id: string): Promise<boolean> {
-
     const db = getDatabase().getDatabase();
     const photo = db.prepare("SELECT * FROM photos WHERE id = ?").get(id) as
       | Photo
@@ -98,7 +176,6 @@ export class PhotoService {
       if (existsSync(filepath)) {
         await unlink(filepath);
       } else {
-
         const fs = require("fs");
         const files = fs.readdirSync("/app/uploads");
 

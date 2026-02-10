@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Folder, Photo, Trip } from '../types/trip'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { tripApi } from '@/api'
 import PhotoGallery from '../components/details/PhotoGallery.vue'
@@ -19,7 +19,6 @@ const photos = ref<Photo[]>([])
 const folders = ref<Folder[]>([
   { id: 'all', name: 'Все фото', tripId, createdAt: new Date().toISOString() },
 ])
-const filteredPhotosCache = ref<Map<string, Photo[]>>(new Map())
 const activeFolder = ref('all')
 const showUpload = ref(false)
 const showCreateFolder = ref(false)
@@ -31,6 +30,13 @@ const showMobileMenu = ref(false)
 const showDeleteModal = ref(false)
 const folderIdDelete = ref<string | false>(false)
 const isDeleting = ref(false)
+
+
+const currentPage = ref(1)
+const totalPages = ref(1)
+const totalPhotos = ref(0)
+const hasMore = ref(false)
+const isLoadingMore = ref(false)
 
 const selectionMode = ref(false)
 
@@ -56,18 +62,18 @@ function cancelSelection() {
 async function fetchTripData() {
   try {
     isLoading.value = true
-    const [tripData, photosData, foldersData] = await Promise.all([
+    const [tripData, foldersData] = await Promise.all([
       tripApi.getById(tripId),
-      tripApi.getPhotosByTripId(tripId),
       tripApi.getFoldersByTripId(tripId),
     ])
 
     trip.value = tripData
-    photos.value = photosData
     folders.value = [
       { id: 'all', name: 'Все фото', tripId, createdAt: new Date().toISOString() },
       ...foldersData,
     ]
+
+    await loadFolderPhotos(activeFolder.value, 1, false)
   }
   catch (error) {
     console.error('Ошибка загрузки данных:', error)
@@ -77,12 +83,62 @@ async function fetchTripData() {
   }
 }
 
+async function loadFolderPhotos(folderId: string, page: number = 1, append: boolean = false) {
+  try {
+    if (append) {
+      isLoadingMore.value = true
+    } else {
+      isLoading.value = true
+    }
+
+    let result
+    if (folderId === 'all') {
+      result = await tripApi.getPhotosByTripIdPaginated(tripId, page, 25)
+    } else {
+      result = await tripApi.getPhotosByFolderIdPaginated(folderId, page, 25)
+    }
+
+    if (append) {
+      photos.value = [...photos.value, ...result.photos]
+    } else {
+      photos.value = result.photos
+    }
+
+    currentPage.value = result.page
+    totalPages.value = result.totalPages
+    totalPhotos.value = result.total
+    hasMore.value = result.page < result.totalPages
+
+  } catch (error) {
+    console.error('Ошибка загрузки фото папки:', error)
+  } finally {
+    isLoading.value = false
+    isLoadingMore.value = false
+  }
+}
+
+async function loadMorePhotos() {
+  if (hasMore.value && !isLoadingMore.value && !isLoading.value) {
+    await loadFolderPhotos(activeFolder.value, currentPage.value + 1, true)
+  }
+}
+
+watch(() => activeFolder.value, (newFolderId) => {
+  if (newFolderId) {
+    photos.value = []
+    currentPage.value = 1
+    loadFolderPhotos(newFolderId, 1, false)
+  }
+})
+
 async function handlePhotoUpload(files: File[], folderId?: string) {
   try {
     isUploading.value = true
     const targetFolderId = folderId || (activeFolder.value !== 'all' ? activeFolder.value : undefined)
     const uploadedPhotos = await tripApi.uploadPhotos(tripId, files, targetFolderId)
-    photos.value.push(...uploadedPhotos)
+
+    photos.value = [...uploadedPhotos, ...photos.value]
+    totalPhotos.value += uploadedPhotos.length
 
     showUpload.value = false
   }
@@ -101,6 +157,8 @@ async function handleCreateFolder(name: string) {
     folders.value.push(folder)
     activeFolder.value = folder.id
     showCreateFolder.value = false
+
+    await loadFolderPhotos(folder.id, 1, false)
   }
   catch (error) {
     console.error('Ошибка создания папки:', error)
@@ -111,6 +169,7 @@ async function handleDeletePhotos(ids: string[]) {
   try {
     await tripApi.deletePhotos(ids)
     photos.value = photos.value.filter(p => !ids.includes(p.id))
+    totalPhotos.value = photos.value.length
     cancelSelection()
   }
   catch (error) {
@@ -132,12 +191,10 @@ async function confirmDeleteModal() {
     folders.value = folders.value.filter(f => f.id !== folderIdDelete.value)
     photos.value = photos.value.filter(p => p.folderId !== folderIdDelete.value)
 
-    filteredPhotosCache.value.clear()
-
     showDeleteModal.value = false
-
     if (activeFolder.value === String(folderIdDelete.value)) {
       activeFolder.value = 'all'
+      await loadFolderPhotos('all', 1, false)
     }
 
     folderIdDelete.value = false
@@ -232,8 +289,9 @@ onMounted(() => {
     </div>
 
     <PhotoGallery :photos="filteredPhotos" :folder-name="folders.find(f => f.id === activeFolder)?.name || 'Фото'"
-      :selection-mode="selectionMode" @upload="showUpload = true" @photo-click="openPhotoViewer"
-      @delete-photos="handleDeletePhotos" @cancel-selection="cancelSelection" />
+      :selection-mode="selectionMode" :is-loading="isLoading" :is-loading-more="isLoadingMore" :has-more="hasMore"
+      :total-photos="totalPhotos" @upload="showUpload = true" @photo-click="openPhotoViewer"
+      @delete-photos="handleDeletePhotos" @cancel-selection="cancelSelection" @load-more="loadMorePhotos" />
 
     <PhotoUpload v-if="showUpload" :folders="realFolders"
       :selected-folder-id="activeFolder !== 'all' ? activeFolder : null" :is-uploading="isUploading"
