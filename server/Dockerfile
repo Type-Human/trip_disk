@@ -1,8 +1,18 @@
 FROM oven/bun:1-alpine
 WORKDIR /app
 
+
+RUN apk add --no-cache \
+    vips \
+    vips-dev \
+    vips-tools \
+    build-base \
+    python3
+
 COPY package.json ./
-RUN bun install --production
+RUN bun install
+
+RUN bun add sharp
 
 COPY . .
 
