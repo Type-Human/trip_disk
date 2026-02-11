@@ -189,6 +189,7 @@ function handleKeydown(e: KeyboardEvent) {
 .form-group textarea {
   width: 100%;
   padding: 10px 12px;
+
   border: 1px solid #d1d5db;
   border-radius: 8px;
   font-size: 14px;
@@ -207,11 +208,34 @@ function handleKeydown(e: KeyboardEvent) {
   }
 }
 
+.form-group input {
+  height: 38px;
+}
+
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
 }
+
+input[type="date"] {
+  &::-webkit-date-and-time-value {
+    text-align: left;
+  }
+  
+  &::-webkit-calendar-picker-indicator {
+    opacity: 0.6;
+    padding: 4px;
+    cursor: pointer;
+  }
+}
+
+@supports (-webkit-touch-callout: none) {
+  input[type="date"] {
+    height: 38px;
+  }
+}
+
 
 .cover-upload {
   margin-top: 8px;

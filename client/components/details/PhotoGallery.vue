@@ -699,7 +699,7 @@ watch(
     flex: 1;
     justify-content: center;
     padding: 12px;
-    font-size: 15px;
+    font-size: 12px;
     min-width: 0;
   }
 
