@@ -319,6 +319,7 @@ watch(
   width: 100%;
   position: relative;
   min-height: 300px;
+  padding-bottom: 70px;
 }
 
 .loading-state {
@@ -377,6 +378,7 @@ watch(
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 12px;
+  
   position: relative;
 }
 
@@ -734,6 +736,7 @@ watch(
 @media (min-width: 1025px) and (max-width: 1440px) {
   .photos-grid {
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    
   }
 
   .image-wrapper {
