@@ -17,6 +17,7 @@ export interface Photo {
   size: number
   uploadedAt: string
   folderId?: string
+  thumbnailUrl?: string | null; 
 }
 
 export interface Folder {

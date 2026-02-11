@@ -1,228 +1,250 @@
 <script setup lang="ts">
-import type { Folder, Photo, Trip } from '../types/trip'
-import { computed, onMounted, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
-import { tripApi } from '@/api'
-import PhotoGallery from '../components/details/PhotoGallery.vue'
-import PhotoViewer from '../components/details/PhotoViewer.vue'
-import AddFolderModal from '../components/modals/AddFolderModal.vue'
-import BackBtn from '../components/ui/BackBtn.vue'
-import Icon from '../components/ui/Icon.vue'
-import PhotoUpload from '../components/upload/PhotoUpload.vue'
-import DeleteModal from '../components/modals/DeleteModal.vue'
+import type { Folder, Photo, Trip } from "../types/trip";
+import { computed, onMounted, ref, watch } from "vue";
+import { useRoute } from "vue-router";
+import { tripApi } from "@/api";
+import PhotoGallery from "../components/details/PhotoGallery.vue";
+import PhotoViewer from "../components/details/PhotoViewer.vue";
+import AddFolderModal from "../components/modals/AddFolderModal.vue";
+import BackBtn from "../components/ui/BackBtn.vue";
+import Icon from "../components/ui/Icon.vue";
+import PhotoUpload from "../components/upload/PhotoUpload.vue";
+import DeleteModal from "../components/modals/DeleteModal.vue";
 
-const route = useRoute()
-const tripId = route.params.id as string
+const route = useRoute();
+const tripId = route.params.id as string;
 
-const trip = ref<Trip | null>(null)
-const photos = ref<Photo[]>([])
+const trip = ref<Trip | null>(null);
+const photos = ref<Photo[]>([]);
 const folders = ref<Folder[]>([
-  { id: 'all', name: 'Все фото', tripId, createdAt: new Date().toISOString() },
-])
-const activeFolder = ref('all')
-const showUpload = ref(false)
-const showCreateFolder = ref(false)
-const showPhotoViewer = ref(false)
-const currentPhotoIndex = ref(0)
-const isLoading = ref(false)
-const isUploading = ref(false)
-const showMobileMenu = ref(false)
-const showDeleteModal = ref(false)
-const folderIdDelete = ref<string | false>(false)
-const isDeleting = ref(false)
+  { id: "all", name: "Все фото", tripId, createdAt: new Date().toISOString() },
+]);
+const activeFolder = ref("all");
+const showUpload = ref(false);
+const showCreateFolder = ref(false);
+const showPhotoViewer = ref(false);
+const currentPhotoIndex = ref(0);
+const isLoading = ref(false);
+const isChangingFolder = ref(false);
+const isUploading = ref(false);
+const showMobileMenu = ref(false);
+const showDeleteModal = ref(false);
+const folderIdDelete = ref<string | false>(false);
+const isDeleting = ref(false);
 
+const currentPage = ref(1);
+const totalPages = ref(1);
+const totalPhotos = ref(0);
+const hasMore = ref(false);
+const isLoadingMore = ref(false);
 
-const currentPage = ref(1)
-const totalPages = ref(1)
-const totalPhotos = ref(0)
-const hasMore = ref(false)
-const isLoadingMore = ref(false)
-
-const selectionMode = ref(false)
+const selectionMode = ref(false);
 
 const filteredPhotos = computed(() => {
-  if (activeFolder.value === 'all') {
-    return photos.value
+  if (activeFolder.value === "all") {
+    return photos.value;
   }
-  return photos.value.filter(photo => photo.folderId === activeFolder.value)
-})
+  return photos.value.filter((photo) => photo.folderId === activeFolder.value);
+});
 
 const realFolders = computed(() => {
-  return folders.value.filter(f => f.id !== 'all')
-})
+  return folders.value.filter((f) => f.id !== "all");
+});
 
 function startSelection() {
-  selectionMode.value = true
+  selectionMode.value = true;
 }
 
 function cancelSelection() {
-  selectionMode.value = false
+  selectionMode.value = false;
 }
 
 async function fetchTripData() {
   try {
-    isLoading.value = true
+    isLoading.value = true;
     const [tripData, foldersData] = await Promise.all([
       tripApi.getById(tripId),
       tripApi.getFoldersByTripId(tripId),
-    ])
+    ]);
 
-    trip.value = tripData
+    trip.value = tripData;
     folders.value = [
-      { id: 'all', name: 'Все фото', tripId, createdAt: new Date().toISOString() },
+      {
+        id: "all",
+        name: "Все фото",
+        tripId,
+        createdAt: new Date().toISOString(),
+      },
       ...foldersData,
-    ]
+    ];
 
-    await loadFolderPhotos(activeFolder.value, 1, false)
-  }
-  catch (error) {
-    console.error('Ошибка загрузки данных:', error)
-  }
-  finally {
-    isLoading.value = false
+    await loadFolderPhotos(activeFolder.value, 1, false);
+  } catch (error) {
+    console.error("Ошибка загрузки данных:", error);
+  } finally {
+    isLoading.value = false;
   }
 }
 
-async function loadFolderPhotos(folderId: string, page: number = 1, append: boolean = false) {
+async function loadFolderPhotos(
+  folderId: string,
+  page: number = 1,
+  append: boolean = false,
+) {
   try {
     if (append) {
-      isLoadingMore.value = true
+      isLoadingMore.value = true;
     } else {
-      isLoading.value = true
+      isChangingFolder.value = true;
     }
 
-    let result
-    if (folderId === 'all') {
-      result = await tripApi.getPhotosByTripIdPaginated(tripId, page, 25)
+    let result;
+    if (folderId === "all") {
+      result = await tripApi.getPhotosByTripIdPaginated(tripId, page, 50);
     } else {
-      result = await tripApi.getPhotosByFolderIdPaginated(folderId, page, 25)
+      result = await tripApi.getPhotosByFolderIdPaginated(folderId, page, 50);
     }
 
     if (append) {
-      photos.value = [...photos.value, ...result.photos]
+      photos.value = [...photos.value, ...result.photos];
     } else {
-      photos.value = result.photos
+      photos.value = result.photos;
     }
 
-    currentPage.value = result.page
-    totalPages.value = result.totalPages
-    totalPhotos.value = result.total
-    hasMore.value = result.page < result.totalPages
-
+    currentPage.value = result.page;
+    totalPages.value = result.totalPages;
+    totalPhotos.value = result.total;
+    hasMore.value = result.page < result.totalPages;
   } catch (error) {
-    console.error('Ошибка загрузки фото папки:', error)
+    console.error("Ошибка загрузки фото папки:", error);
+    if (!append) {
+      photos.value = [];
+    }
   } finally {
-    isLoading.value = false
-    isLoadingMore.value = false
+    isLoading.value = false;
+    isLoadingMore.value = false;
+    isChangingFolder.value = false;
   }
 }
 
 async function loadMorePhotos() {
   if (hasMore.value && !isLoadingMore.value && !isLoading.value) {
-    await loadFolderPhotos(activeFolder.value, currentPage.value + 1, true)
+    await loadFolderPhotos(activeFolder.value, currentPage.value + 1, true);
   }
 }
 
-watch(() => activeFolder.value, (newFolderId) => {
-  if (newFolderId) {
-    photos.value = []
-    currentPage.value = 1
-    loadFolderPhotos(newFolderId, 1, false)
-  }
-})
+function handleFolderClick(folderId: string) {
+  if (activeFolder.value === folderId) return;
+
+  activeFolder.value = folderId;
+  currentPage.value = 1;
+
+  loadFolderPhotos(folderId, 1, false);
+}
+
+watch(
+  () => activeFolder.value,
+  (newFolderId) => {
+    if (newFolderId) {
+      currentPage.value = 1;
+    }
+  },
+);
 
 async function handlePhotoUpload(files: File[], folderId?: string) {
   try {
-    isUploading.value = true
-    const targetFolderId = folderId || (activeFolder.value !== 'all' ? activeFolder.value : undefined)
-    const uploadedPhotos = await tripApi.uploadPhotos(tripId, files, targetFolderId)
+    isUploading.value = true;
+    const targetFolderId =
+      folderId ||
+      (activeFolder.value !== "all" ? activeFolder.value : undefined);
+    const uploadedPhotos = await tripApi.uploadPhotos(
+      tripId,
+      files,
+      targetFolderId,
+    );
 
-    photos.value = [...uploadedPhotos, ...photos.value]
-    totalPhotos.value += uploadedPhotos.length
+    photos.value = [...photos.value, ...uploadedPhotos];
+    totalPhotos.value += uploadedPhotos.length;
 
-    showUpload.value = false
-  }
-  catch (error) {
-    console.error('Ошибка загрузки фото:', error)
-  }
-  finally {
-    isUploading.value = false
+    showUpload.value = false;
+  } catch (error) {
+    console.error("Ошибка загрузки фото:", error);
+  } finally {
+    isUploading.value = false;
   }
 }
 
 async function handleCreateFolder(name: string) {
   try {
-    const folder = await tripApi.createFolder(tripId, name)
+    const folder = await tripApi.createFolder(tripId, name);
 
-    folders.value.push(folder)
-    activeFolder.value = folder.id
-    showCreateFolder.value = false
+    folders.value.push(folder);
+    activeFolder.value = folder.id;
+    showCreateFolder.value = false;
 
-    await loadFolderPhotos(folder.id, 1, false)
-  }
-  catch (error) {
-    console.error('Ошибка создания папки:', error)
+    await loadFolderPhotos(folder.id, 1, false);
+  } catch (error) {
+    console.error("Ошибка создания папки:", error);
   }
 }
 
 async function handleDeletePhotos(ids: string[]) {
   try {
-    await tripApi.deletePhotos(ids)
-    photos.value = photos.value.filter(p => !ids.includes(p.id))
-    totalPhotos.value = photos.value.length
-    cancelSelection()
-  }
-  catch (error) {
-    console.error('Ошибка удаления фото:', error)
+    await tripApi.deletePhotos(ids);
+    photos.value = photos.value.filter((p) => !ids.includes(p.id));
+    totalPhotos.value = photos.value.length;
+    cancelSelection();
+  } catch (error) {
+    console.error("Ошибка удаления фото:", error);
   }
 }
 
 async function handleDeleteFolder(folderId: string) {
-  showDeleteModal.value = true
-  folderIdDelete.value = folderId
+  showDeleteModal.value = true;
+  folderIdDelete.value = folderId;
 }
 
 async function confirmDeleteModal() {
-  if (!folderIdDelete.value) return
+  if (!folderIdDelete.value) return;
 
   try {
-    isDeleting.value = true
-    await tripApi.deleteFolder(folderIdDelete.value)
-    folders.value = folders.value.filter(f => f.id !== folderIdDelete.value)
-    photos.value = photos.value.filter(p => p.folderId !== folderIdDelete.value)
+    isDeleting.value = true;
+    await tripApi.deleteFolder(folderIdDelete.value);
+    folders.value = folders.value.filter((f) => f.id !== folderIdDelete.value);
+    photos.value = photos.value.filter(
+      (p) => p.folderId !== folderIdDelete.value,
+    );
 
-    showDeleteModal.value = false
+    showDeleteModal.value = false;
     if (activeFolder.value === String(folderIdDelete.value)) {
-      activeFolder.value = 'all'
-      await loadFolderPhotos('all', 1, false)
+      activeFolder.value = "all";
+      await loadFolderPhotos("all", 1, false);
     }
 
-    folderIdDelete.value = false
-  }
-  catch (error) {
-    console.error(error)
-  }
-  finally {
-    isDeleting.value = false
+    folderIdDelete.value = false;
+  } catch (error) {
+    console.error(error);
+  } finally {
+    isDeleting.value = false;
   }
 }
 
 function closeDeleteModal() {
   if (!isDeleting.value) {
-    showDeleteModal.value = false
-    folderIdDelete.value = false
+    showDeleteModal.value = false;
+    folderIdDelete.value = false;
   }
 }
 
 function openPhotoViewer(index: number) {
-  if (selectionMode.value) return
-  currentPhotoIndex.value = index
-  showPhotoViewer.value = true
+  if (selectionMode.value) return;
+  currentPhotoIndex.value = index;
+  showPhotoViewer.value = true;
 }
 
 onMounted(() => {
-  fetchTripData()
-})
+  fetchTripData();
+});
 </script>
 
 <template>
@@ -231,37 +253,62 @@ onMounted(() => {
       <div class="title-container">
         <BackBtn />
         <div class="header-content">
-          <h1>{{ trip?.title || 'Загрузка...' }}</h1>
+          <h1>{{ trip?.title || "Загрузка..." }}</h1>
         </div>
       </div>
-
+      <button
+        v-if="!selectionMode && filteredPhotos?.length > 0"
+        class="manage-photos-btn"
+        :title="
+          selectionMode ? 'Выйти из режима выбора' : 'Управление фотографиями'
+        "
+        @click="startSelection"
+      >
+        <Icon :size="20" filled color="#FF0000">
+          <path
+            d="M6 19C6 20.1 6.9 21 8 21H16C17.1 21 18 20.1 18 19V7H6V19ZM19 4H15.5L14.5 3H9.5L8.5 4H5V6H19V4Z"
+          />
+        </Icon>
+      </button>
       <div class="desktop-actions">
-        <button class="btn-primary" @click="showUpload = true">
-          Добавить фото
-        </button>
         <button class="btn-secondary" @click="showCreateFolder = true">
           + Папка
         </button>
+        <button class="btn-primary" @click="showUpload = true">
+          Добавить фото
+        </button>
+        
       </div>
-
-      <button v-if="!selectionMode && filteredPhotos.length > 0" class="manage-photos-btn"
-        :title="selectionMode ? 'Выйти из режима выбора' : 'Управление фотографиями'" @click="startSelection">
-        <Icon :size="20" filled color="#FF0000">
-          <path d="M6 19C6 20.1 6.9 21 8 21H16C17.1 21 18 20.1 18 19V7H6V19ZM19 4H15.5L14.5 3H9.5L8.5 4H5V6H19V4Z" />
-        </Icon>
-      </button>
-
       <div class="mobile-menu">
-        <button class="mobile-menu-button" @click="showMobileMenu = !showMobileMenu">
+        <button
+          class="mobile-menu-button"
+          @click="showMobileMenu = !showMobileMenu"
+        >
           <span class="menu-dots">⋮</span>
         </button>
 
-        <div v-if="showMobileMenu" class="mobile-menu-overlay" @click="showMobileMenu = false">
+        <div
+          v-if="showMobileMenu"
+          class="mobile-menu-overlay"
+          @click="showMobileMenu = false"
+        >
           <div class="mobile-menu-content" @click.stop>
-            <button class="mobile-menu-item" @click="showCreateFolder = true; showMobileMenu = false">
+            <button
+              class="mobile-menu-item"
+              @click="
+                showCreateFolder = true;
+                showMobileMenu = false;
+              "
+            >
               + Папка
             </button>
-            <button class="mobile-menu-item" @click="showUpload = true; showMobileMenu = false">
+            <button
+              class="mobile-menu-item"
+              @click="
+                showUpload = true;
+                showMobileMenu = false;
+              "
+            >
               Добавить фото
             </button>
             <button class="mobile-menu-close" @click="showMobileMenu = false">
@@ -275,12 +322,22 @@ onMounted(() => {
     <div class="folders-container">
       <div class="folders-tabs">
         <div class="folders-scroll">
-          <button v-for="folder in folders" :key="folder.id" class="folder-tab"
-            :class="{ active: activeFolder === folder.id }" @click="activeFolder = folder.id">
+          <button
+            v-for="folder in folders"
+            :key="folder.id"
+            class="folder-tab"
+            :class="{ active: activeFolder === folder.id }"
+            @click="handleFolderClick(folder.id)"
+          >
             <span class="folder-name">{{ folder.name }}</span>
 
-            <button v-if="folder.id !== 'all'" type="button" class="folder-tab-delete" title="Удалить папку"
-              @click.stop="handleDeleteFolder(folder.id)">
+            <button
+              v-if="folder.id !== 'all'"
+              type="button"
+              class="folder-tab-delete"
+              title="Удалить папку"
+              @click.stop="handleDeleteFolder(folder.id)"
+            >
               ✕
             </button>
           </button>
@@ -288,28 +345,60 @@ onMounted(() => {
       </div>
     </div>
 
-    <PhotoGallery :photos="filteredPhotos" :folder-name="folders.find(f => f.id === activeFolder)?.name || 'Фото'"
-      :selection-mode="selectionMode" :is-loading="isLoading" :is-loading-more="isLoadingMore" :has-more="hasMore"
-      :total-photos="totalPhotos" @upload="showUpload = true" @photo-click="openPhotoViewer"
-      @delete-photos="handleDeletePhotos" @cancel-selection="cancelSelection" @load-more="loadMorePhotos" />
+    <PhotoGallery
+      :photos="filteredPhotos"
+      :folder-name="folders.find((f) => f.id === activeFolder)?.name || 'Фото'"
+      :selection-mode="selectionMode"
+      :is-loading="isChangingFolder"
+      :is-loading-more="isLoadingMore"
+      :has-more="hasMore"
+      :total-photos="totalPhotos"
+      @upload="showUpload = true"
+      @photo-click="openPhotoViewer"
+      @delete-photos="handleDeletePhotos"
+      @cancel-selection="cancelSelection"
+      @load-more="loadMorePhotos"
+    />
 
-    <PhotoUpload v-if="showUpload" :folders="realFolders"
-      :selected-folder-id="activeFolder !== 'all' ? activeFolder : null" :is-uploading="isUploading"
-      @close="showUpload = false" @upload="handlePhotoUpload" />
+    <PhotoUpload
+      v-if="showUpload"
+      :folders="realFolders"
+      :selected-folder-id="activeFolder !== 'all' ? activeFolder : null"
+      :is-uploading="isUploading"
+      @close="showUpload = false"
+      @upload="handlePhotoUpload"
+    />
 
-    <AddFolderModal v-if="showCreateFolder" @close="showCreateFolder = false" @create="handleCreateFolder" />
+    <AddFolderModal
+      v-if="showCreateFolder"
+      @close="showCreateFolder = false"
+      @create="handleCreateFolder"
+    />
 
-    <PhotoViewer v-if="showPhotoViewer" :photos="filteredPhotos" :current-index="currentPhotoIndex"
-      :show="showPhotoViewer" @close="showPhotoViewer = false" @update:current-index="currentPhotoIndex = $event" />
+    <PhotoViewer
+      v-if="showPhotoViewer"
+      :photos="filteredPhotos"
+      :current-index="currentPhotoIndex"
+      :show="showPhotoViewer"
+      :folder-id="activeFolder !== 'all' ? activeFolder : undefined"
+      @close="showPhotoViewer = false"
+      @update:current-index="currentPhotoIndex = $event"
+      @load-more="loadMorePhotos"
+    />
 
-    <DeleteModal v-if="folderIdDelete && showDeleteModal" @confirm="confirmDeleteModal" :loading="isDeleting"
-      @close="closeDeleteModal()" />
+    <DeleteModal
+      v-if="folderIdDelete && showDeleteModal"
+      @confirm="confirmDeleteModal"
+      :loading="isDeleting"
+      @close="closeDeleteModal()"
+    />
   </div>
 </template>
 
 <style scoped lang="scss">
 .trip-details {
   max-width: 1400px;
+  height: 100vh;
   margin: 0 auto;
   padding: 16px;
 

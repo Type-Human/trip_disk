@@ -1,10 +1,10 @@
 import type { Photo } from "../types/trip";
 import { existsSync } from "node:fs";
-import { unlink } from "node:fs/promises";
+import { unlink, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { getDatabase } from "../database";
 import { fileStorage } from "../storage";
-import { readFile } from "node:fs/promises";
+import sharp from "sharp";
 
 export class PhotoService {
   async initialize(): Promise<void> {}
@@ -27,7 +27,6 @@ export class PhotoService {
     return photos;
   }
 
- 
   async getByTripIdPaginated(
     tripId: string,
     page: number = 1,
@@ -40,7 +39,6 @@ export class PhotoService {
   }> {
     const db = getDatabase().getDatabase();
 
-   
     const totalResult = db
       .prepare("SELECT COUNT(*) as count FROM photos WHERE tripId = ?")
       .get(tripId) as { count: number };
@@ -66,7 +64,6 @@ export class PhotoService {
     };
   }
 
-
   async getByFolderIdPaginated(
     folderId: string,
     page: number = 1,
@@ -79,14 +76,12 @@ export class PhotoService {
   }> {
     const db = getDatabase().getDatabase();
 
-
     const totalResult = db
       .prepare("SELECT COUNT(*) as count FROM photos WHERE folderId = ?")
       .get(folderId) as { count: number };
 
     const total = totalResult.count;
     const offset = (page - 1) * limit;
-
 
     const photos = db
       .prepare(
@@ -115,12 +110,31 @@ export class PhotoService {
     const uploadedPhotos: Photo[] = [];
 
     for (const file of files) {
+      const buffer = Buffer.from(await file.arrayBuffer());
+      
       const filename = await fileStorage.saveFile(file);
+
+      let thumbnailUrl = null;
+      try {
+        const thumbnailBuffer = await sharp(buffer)
+          .resize(400, 300, { fit: 'cover' })
+          .webp({ quality: 100 })
+          .toBuffer();
+        
+        const thumbnailName = `thumb-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.webp`;
+        const thumbnailPath = join(fileStorage.uploadsDirectory, thumbnailName);
+        
+        await Bun.write(thumbnailPath, thumbnailBuffer);
+        thumbnailUrl = `/uploads/${thumbnailName}`;
+      } catch (error) {
+        console.error("Ошибка генерации миниатюры:", error);
+      }
 
       const photo: Photo = {
         id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         tripId,
         url: `/uploads/${filename}`,
+        thumbnailUrl,
         filename: file.name,
         size: file.size,
         uploadedAt: new Date().toISOString(),
@@ -129,14 +143,15 @@ export class PhotoService {
 
       db.prepare(
         `
-        INSERT INTO photos (id, tripId, folderId, url, filename, size, uploadedAt)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO photos (id, tripId, folderId, url, thumbnailUrl, filename, size, uploadedAt)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `,
       ).run(
         photo.id,
         photo.tripId,
         photo.folderId || null,
         photo.url,
+        photo.thumbnailUrl,
         photo.filename,
         photo.size,
         photo.uploadedAt,
@@ -168,25 +183,26 @@ export class PhotoService {
     }
 
     try {
+
       const filename = photo.url.replace("/uploads/", "");
-      console.log(`📄 Имя файла из URL: ${filename}`);
-
       const filepath = join("/app/uploads", filename);
-
       if (existsSync(filepath)) {
         await unlink(filepath);
-      } else {
-        const fs = require("fs");
-        const files = fs.readdirSync("/app/uploads");
+      }
 
-        const similar = files.filter((f) => f.includes(filename));
+
+      if (photo.thumbnailUrl) {
+        const thumbnailName = photo.thumbnailUrl.replace("/uploads/", "");
+        const thumbnailPath = join("/app/uploads", thumbnailName);
+        if (existsSync(thumbnailPath)) {
+          await unlink(thumbnailPath);
+        }
       }
     } catch (error) {
       console.error("💥 Ошибка удаления файла:", error);
     }
 
     const result = db.prepare("DELETE FROM photos WHERE id = ?").run(id);
-
     return result.changes > 0;
   }
 
@@ -200,9 +216,16 @@ export class PhotoService {
       try {
         const filename = photo.url.replace("/uploads/", "");
         const filepath = join("/app/uploads", filename);
-
         if (existsSync(filepath)) {
           await unlink(filepath);
+        }
+
+        if (photo.thumbnailUrl) {
+          const thumbnailName = photo.thumbnailUrl.replace("/uploads/", "");
+          const thumbnailPath = join("/app/uploads", thumbnailName);
+          if (existsSync(thumbnailPath)) {
+            await unlink(thumbnailPath);
+          }
         }
       } catch (error) {
         console.error("Ошибка удаления файла:", error);
@@ -225,9 +248,16 @@ export class PhotoService {
       try {
         const filename = photo.url.replace("/uploads/", "");
         const filepath = join("/app/uploads", filename);
-
         if (existsSync(filepath)) {
           await unlink(filepath);
+        }
+
+        if (photo.thumbnailUrl) {
+          const thumbnailName = photo.thumbnailUrl.replace("/uploads/", "");
+          const thumbnailPath = join("/app/uploads", thumbnailName);
+          if (existsSync(thumbnailPath)) {
+            await unlink(thumbnailPath);
+          }
         }
       } catch (error) {
         console.error("Ошибка удаления файла:", error);

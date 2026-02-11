@@ -24,9 +24,7 @@ export function createRoutes(
     const path = c.req.path.replace('/uploads/', '')
     const filepath = join(fileStorage.uploadsDirectory, path)
     
-    console.log('DEBUG: Request for uploads:', path)
-    console.log('DEBUG: Filepath:', filepath)
-    console.log('DEBUG: File exists:', existsSync(filepath))
+
 
     if (!existsSync(filepath)) {
       return c.json({ error: 'Файл не найден' }, 404)

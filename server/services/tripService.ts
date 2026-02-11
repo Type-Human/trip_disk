@@ -54,32 +54,26 @@ export class TripService {
   }
 
   async delete(id: string): Promise<boolean> {
-    console.log('УДАЛЕНИЕ ПОЕЗДКИ ID:', id)
     
     const db = getDatabase().getDatabase()
     
     const trip = db.prepare('SELECT * FROM trips WHERE id = ?').get(id) as Trip | undefined
     
     if (!trip) {
-      console.log('Поездка не найдена')
       return false
     }
     
-    console.log('Поездка:', trip.title)
     
     if (trip.coverImage) {
       try {
         const filename = trip.coverImage.replace('/uploads/', '')
         const filepath = join('/app/uploads', filename)
         
-        console.log('Файл обложки:', filepath)
+  
         
         if (existsSync(filepath)) {
           await unlink(filepath)
-          console.log('Обложка удалена')
-        } else {
-          console.log('Файл обложки не найден')
-        }
+        } 
       } catch (error) {
         console.error('Ошибка удаления обложки:', error)
       }
@@ -94,7 +88,6 @@ export class TripService {
         
         if (existsSync(filepath)) {
           await unlink(filepath)
-          console.log('Фото удалено:', photo.filename)
         }
       } catch (error) {
         console.error('Ошибка удаления фото:', error)
@@ -102,13 +95,9 @@ export class TripService {
     }
     
     const foldersResult = db.prepare('DELETE FROM folders WHERE tripId = ?').run(id)
-    console.log('Папок удалено:', foldersResult.changes)
     
     const photosResult = db.prepare('DELETE FROM photos WHERE tripId = ?').run(id)
-    console.log('Фото удалено из БД:', photosResult.changes)
-    
     const result = db.prepare('DELETE FROM trips WHERE id = ?').run(id)
-    console.log('Поездка удалена из БД:', result.changes > 0)
     
     return result.changes > 0
   }

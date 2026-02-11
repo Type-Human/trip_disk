@@ -33,7 +33,7 @@ async function handleCreateTrip(data: CreateTripDto) {
   try {
     isCreating.value = true
     const newTrip = await tripApi.create(data)
-    trips.value.unshift(newTrip)
+    trips.value.push(newTrip)
     showCreateModal.value = false
   }
   catch (error) {

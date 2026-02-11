@@ -1,7 +1,8 @@
 import { randomBytes } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
+import { join } from 'node:path'
+import sharp from 'sharp'
 
 export class FileStorage {
   constructor(
@@ -30,6 +31,22 @@ export class FileStorage {
     const filename = `${timestamp}-${random}-${safeName}`
     const filepath = join(this.uploadsDir, filename)
 
+    await writeFile(filepath, buffer)
+    return filename
+  }
+
+  async saveThumbnail(buffer: Buffer): Promise<string> {
+    const timestamp = Date.now()
+    const random = randomBytes(4).toString('hex')
+    const filename = `thumb-${timestamp}-${random}.webp`
+    const filepath = join(this.uploadsDir, filename)
+
+    await writeFile(filepath, buffer)
+    return filename
+  }
+
+  async saveBuffer(buffer: Buffer, filename: string): Promise<string> {
+    const filepath = join(this.uploadsDir, filename)
     await writeFile(filepath, buffer)
     return filename
   }
