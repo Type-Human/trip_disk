@@ -118,7 +118,7 @@ export class PhotoService {
       try {
         const thumbnailBuffer = await sharp(buffer)
           .resize(400, 300, { fit: 'cover' })
-          .webp({ quality: 100 })
+          .webp({ quality: 70})
           .toBuffer();
         
         const thumbnailName = `thumb-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.webp`;
