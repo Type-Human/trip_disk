@@ -24,6 +24,8 @@ const scale = ref(1)
 const isMobile = ref(false)
 const lastTapTime = ref(0)
 const isHeaderVisible = ref(false)
+const isImageLoaded = ref(true)
+
 let headerTimeout: ReturnType<typeof setTimeout> | null = null
 let tapTimeout: ReturnType<typeof setTimeout> | null = null
 let tapCount = 0
@@ -33,10 +35,127 @@ const shouldLoadMore = computed(() => {
   return props.currentIndex >= props.photos.length - 3
 })
 
+
+onMounted(() => {
+  checkMobile()
+  window.addEventListener('resize', checkMobile)
+  document.addEventListener('keydown', handleKeydown)
+  document.body.classList.add('no-scroll')
+  document.documentElement.style.overflow = 'hidden'
+  showHeader()
+  
+
+  preloadAllImages()
+})
+
+
+function preloadAllImages() {
+  props.photos.forEach((photo, index) => {
+    if (index === props.currentIndex) return
+  
+    const img = new Image()
+    img.src = photo.url
+
+    if (Math.abs(index - props.currentIndex) <= 2) {
+      img.fetchPriority = 'high'
+    } else {
+      img.fetchPriority = 'low'
+    }
+  })
+}
+
+function preloadAdjacent() {
+  const index = props.currentIndex
+  
+
+  for (let i = 1; i <= 3; i++) {
+    if (index + i < props.photos.length) {
+      const img = new Image()
+      img.fetchPriority = 'high'
+      img.src = props.photos[index + i].url
+    }
+  }
+  
+
+  for (let i = 1; i <= 3; i++) {
+    if (index - i >= 0) {
+      const img = new Image()
+      img.fetchPriority = 'high'
+      img.src = props.photos[index - i].url
+    }
+  }
+}
+
+
+function previousPhoto() {
+  const newIndex = props.currentIndex === 0 ? props.photos.length - 1 : props.currentIndex - 1
+  emit('update:currentIndex', newIndex)
+  showHeader()
+  isImageLoaded.value = true 
+  preloadAdjacent() 
+}
+
+function nextPhoto() {
+  if (props.currentIndex === props.photos.length - 1) {
+    emit('loadMore')
+    return
+  }
+  
+  const newIndex = props.currentIndex + 1
+  emit('update:currentIndex', newIndex)
+  showHeader()
+  isImageLoaded.value = true 
+  preloadAdjacent() 
+}
+
+
+function handleTouchEnd(e: TouchEvent) {
+  if (!isZooming.value && e.changedTouches.length === 1) {
+    const touchEndX = e.changedTouches[0].clientX
+    const touchEndY = e.changedTouches[0].clientY
+    const diffX = Math.abs(touchStartX.value - touchEndX)
+    const diffY = Math.abs(touchStartY.value - touchEndY)
+    
+    if (diffX > 30 && diffY < 50 && scale.value === 1) {
+      if (touchStartX.value > touchEndX) {
+        nextPhoto() 
+      } else {
+        previousPhoto() 
+      }
+    }
+  }
+  
+  isZooming.value = false
+  
+  if (scale.value > 1) {
+    setTimeout(() => {
+      scale.value = 1
+    }, 3000)
+  }
+}
+
+
+function handleKeydown(e: KeyboardEvent) {
+  switch (e.key) {
+    case 'Escape':
+      emit('close')
+      break
+    case 'ArrowLeft':
+      e.preventDefault()
+      previousPhoto() 
+      break
+    case 'ArrowRight':
+      e.preventDefault()
+      nextPhoto() 
+      break
+  }
+}
+
 watch(() => props.currentIndex, (newIndex) => {
   if (shouldLoadMore.value) {
     emit('loadMore')
   }
+  preloadAdjacent()
 })
 
 function checkMobile() {
@@ -47,7 +166,6 @@ async function downloadCurrentPhoto() {
   try {
     const photoId = currentPhoto.value?.id
     if (!photoId) return
-
     const filename = currentPhoto.value?.filename || 'photo.jpg'
     await tripApi.downloadPhotoAsFile(photoId, filename)
   } catch (error) {
@@ -101,31 +219,6 @@ function handleTouchMove(e: TouchEvent) {
   }
 }
 
-function handleTouchEnd(e: TouchEvent) {
-  if (!isZooming.value && e.changedTouches.length === 1) {
-    const touchEndX = e.changedTouches[0].clientX
-    const touchEndY = e.changedTouches[0].clientY
-    const diffX = Math.abs(touchStartX.value - touchEndX)
-    const diffY = Math.abs(touchStartY.value - touchEndY)
-    
-    if (diffX > 30 && diffY < 50 && scale.value === 1) {
-      if (touchStartX.value > touchEndX) {
-        nextPhoto()
-      } else {
-        previousPhoto()
-      }
-    }
-  }
-  
-  isZooming.value = false
-  
-  if (scale.value > 1) {
-    setTimeout(() => {
-      scale.value = 1
-    }, 3000)
-  }
-}
-
 function handleImageClick(e: MouseEvent) {
   if (!isMobile.value) {
     if (isHeaderVisible.value) {
@@ -161,37 +254,6 @@ function handleImageClick(e: MouseEvent) {
   }
 }
 
-function previousPhoto() {
-  const newIndex = props.currentIndex === 0 ? props.photos.length - 1 : props.currentIndex - 1
-  emit('update:currentIndex', newIndex)
-  showHeader()
-}
-
-function nextPhoto() {
-  if (props.currentIndex === props.photos.length - 1) {
-    emit('loadMore')
-    return
-  }
-  
-  const newIndex = props.currentIndex + 1
-  emit('update:currentIndex', newIndex)
-  showHeader()
-}
-
-function handleKeydown(e: KeyboardEvent) {
-  switch (e.key) {
-    case 'Escape':
-      emit('close')
-      break
-    case 'ArrowLeft':
-      previousPhoto()
-      break
-    case 'ArrowRight':
-      nextPhoto()
-      break
-  }
-}
-
 function handleClickOutside(e: MouseEvent) {
   const target = e.target as HTMLElement
   if (target.classList.contains('MediaViewerSlides') || target.classList.contains('current-image-container')) {
@@ -206,6 +268,8 @@ onMounted(() => {
   document.body.classList.add('no-scroll')
   document.documentElement.style.overflow = 'hidden'
   showHeader()
+  
+  preloadAllImages()
 })
 
 onUnmounted(() => {
@@ -236,8 +300,6 @@ onUnmounted(() => {
       :class="{ 'header-visible': isHeaderVisible, 'header-hidden': !isHeaderVisible }"
     >
       <div class="header-content">
-       
-
         <div class="header-actions">
           <button class="download-button" @click="downloadCurrentPhoto" aria-label="Download">
             <Icon class="download-icon" :size="20" color="#fff" :filled="true">
@@ -269,6 +331,7 @@ onUnmounted(() => {
           draggable="false"
           @click="handleImageClick"
           :style="{ transform: scale > 1 ? `scale(${scale})` : 'none' }"
+          fetchpriority="high"
         />
       </div>
 
@@ -298,6 +361,7 @@ onUnmounted(() => {
     </div>
   </div>
 </template>
+
 
 <style scoped>
 .MediaViewer {
