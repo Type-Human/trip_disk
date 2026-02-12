@@ -117,6 +117,7 @@ export class PhotoService {
       let thumbnailUrl = null;
       try {
         const thumbnailBuffer = await sharp(buffer)
+          .rotate()
           .resize(400, 300, { fit: 'cover' })
           .webp({ quality: 70})
           .toBuffer();
