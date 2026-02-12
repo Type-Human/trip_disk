@@ -661,4 +661,9 @@ function handleClickOutside(e: MouseEvent) {
     height: calc(100% - 80px);
   }
 }
+
+* {
+  -webkit-tap-highlight-color: transparent !important;
+  -webkit-touch-callout: none !important;
+}
 </style>
