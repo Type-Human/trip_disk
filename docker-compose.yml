@@ -6,6 +6,8 @@ services:
     container_name: trip_disk_frontend
     ports:
       - "80:80"
+    volumes:
+      - trip_disk_uploads:/app/uploads:ro
     depends_on:
       - backend
     networks:
