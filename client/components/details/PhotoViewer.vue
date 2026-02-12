@@ -17,19 +17,20 @@ const emit = defineEmits<{
 }>()
 
 const currentPhoto = computed(() => props.photos[props.currentIndex])
+
+
+const isAnimating = ref(false)
+const displayPhoto = ref<Photo | null>(null)
+const nextPhotoCache = ref<Photo | null>(null)
+const prevPhotoCache = ref<Photo | null>(null)
+const slideOffset = ref(0)
 const touchStartX = ref(0)
-const touchStartY = ref(0)
-const isZooming = ref(false)
-const scale = ref(1)
 const isMobile = ref(false)
-const lastTapTime = ref(0)
 const isHeaderVisible = ref(false)
-const isImageLoaded = ref(true)
+const scale = ref(1)
 
 let headerTimeout: ReturnType<typeof setTimeout> | null = null
-let tapTimeout: ReturnType<typeof setTimeout> | null = null
-let tapCount = 0
-let initialDistance = 0
+let transitionTimer: ReturnType<typeof setTimeout> | null = null
 
 const shouldLoadMore = computed(() => {
   return props.currentIndex >= props.photos.length - 3
@@ -37,238 +38,12 @@ const shouldLoadMore = computed(() => {
 
 
 onMounted(() => {
+  displayPhoto.value = currentPhoto.value
   checkMobile()
   window.addEventListener('resize', checkMobile)
   document.addEventListener('keydown', handleKeydown)
   document.body.classList.add('no-scroll')
-  document.documentElement.style.overflow = 'hidden'
   showHeader()
-  
-
-  preloadAllImages()
-})
-
-
-function preloadAllImages() {
-  props.photos.forEach((photo, index) => {
-    if (index === props.currentIndex) return
-  
-    const img = new Image()
-    img.src = photo.url
-
-    if (Math.abs(index - props.currentIndex) <= 2) {
-      img.fetchPriority = 'high'
-    } else {
-      img.fetchPriority = 'low'
-    }
-  })
-}
-
-function preloadAdjacent() {
-  const index = props.currentIndex
-  
-
-  for (let i = 1; i <= 3; i++) {
-    if (index + i < props.photos.length) {
-      const img = new Image()
-      img.fetchPriority = 'high'
-      img.src = props.photos[index + i].url
-    }
-  }
-  
-
-  for (let i = 1; i <= 3; i++) {
-    if (index - i >= 0) {
-      const img = new Image()
-      img.fetchPriority = 'high'
-      img.src = props.photos[index - i].url
-    }
-  }
-}
-
-
-function previousPhoto() {
-  const newIndex = props.currentIndex === 0 ? props.photos.length - 1 : props.currentIndex - 1
-  emit('update:currentIndex', newIndex)
-  showHeader()
-  isImageLoaded.value = true 
-  preloadAdjacent() 
-}
-
-function nextPhoto() {
-  if (props.currentIndex === props.photos.length - 1) {
-    emit('loadMore')
-    return
-  }
-  
-  const newIndex = props.currentIndex + 1
-  emit('update:currentIndex', newIndex)
-  showHeader()
-  isImageLoaded.value = true 
-  preloadAdjacent() 
-}
-
-
-function handleTouchEnd(e: TouchEvent) {
-  if (!isZooming.value && e.changedTouches.length === 1) {
-    const touchEndX = e.changedTouches[0].clientX
-    const touchEndY = e.changedTouches[0].clientY
-    const diffX = Math.abs(touchStartX.value - touchEndX)
-    const diffY = Math.abs(touchStartY.value - touchEndY)
-    
-    if (diffX > 30 && diffY < 50 && scale.value === 1) {
-      if (touchStartX.value > touchEndX) {
-        nextPhoto() 
-      } else {
-        previousPhoto() 
-      }
-    }
-  }
-  
-  isZooming.value = false
-  
-  if (scale.value > 1) {
-    setTimeout(() => {
-      scale.value = 1
-    }, 3000)
-  }
-}
-
-
-function handleKeydown(e: KeyboardEvent) {
-  switch (e.key) {
-    case 'Escape':
-      emit('close')
-      break
-    case 'ArrowLeft':
-      e.preventDefault()
-      previousPhoto() 
-      break
-    case 'ArrowRight':
-      e.preventDefault()
-      nextPhoto() 
-      break
-  }
-}
-
-watch(() => props.currentIndex, (newIndex) => {
-  if (shouldLoadMore.value) {
-    emit('loadMore')
-  }
-  preloadAdjacent()
-})
-
-function checkMobile() {
-  isMobile.value = window.innerWidth <= 768
-}
-
-async function downloadCurrentPhoto() {
-  try {
-    const photoId = currentPhoto.value?.id
-    if (!photoId) return
-    const filename = currentPhoto.value?.filename || 'photo.jpg'
-    await tripApi.downloadPhotoAsFile(photoId, filename)
-  } catch (error) {
-    console.error('Ошибка скачивания:', error)
-  }
-}
-
-function showHeader() {
-  isHeaderVisible.value = true
-  if (headerTimeout) {
-    clearTimeout(headerTimeout)
-    headerTimeout = null
-  }
-
-  headerTimeout = setTimeout(() => {
-    isHeaderVisible.value = false
-    headerTimeout = null
-  }, 3000)
-}
-
-function handleMouseMove() {
-  showHeader()
-}
-
-function handleTouchStart(e: TouchEvent) {
-  showHeader()
-  
-  if (e.touches.length === 1) {
-    touchStartX.value = e.touches[0].clientX
-    touchStartY.value = e.touches[0].clientY
-    isZooming.value = false
-  } else if (e.touches.length === 2) {
-    isZooming.value = true
-    const dx = e.touches[0].clientX - e.touches[1].clientX
-    const dy = e.touches[0].clientY - e.touches[1].clientY
-    initialDistance = Math.sqrt(dx * dx + dy * dy)
-    e.preventDefault()
-  }
-}
-
-function handleTouchMove(e: TouchEvent) {
-  if (isZooming.value && e.touches.length === 2) {
-    const dx = e.touches[0].clientX - e.touches[1].clientX
-    const dy = e.touches[0].clientY - e.touches[1].clientY
-    const currentDistance = Math.sqrt(dx * dx + dy * dy)
-    
-    if (initialDistance > 0) {
-      scale.value = Math.max(1, Math.min(3, currentDistance / initialDistance))
-    }
-    e.preventDefault()
-  }
-}
-
-function handleImageClick(e: MouseEvent) {
-  if (!isMobile.value) {
-    if (isHeaderVisible.value) {
-      isHeaderVisible.value = false
-      if (headerTimeout) {
-        clearTimeout(headerTimeout)
-        headerTimeout = null
-      }
-    } else {
-      showHeader()
-    }
-    return
-  }
-
-  const now = Date.now()
-  const timeDiff = now - lastTapTime.value
-
-  tapCount++
-
-  if (tapCount === 1) {
-    lastTapTime.value = now
-
-    tapTimeout = setTimeout(() => {
-      tapCount = 0
-    }, 300)
-  } else if (tapCount === 2 && timeDiff < 300) {
-    if (tapTimeout) {
-      clearTimeout(tapTimeout)
-      tapTimeout = null
-    }
-    tapCount = 0
-    previousPhoto()
-  }
-}
-
-function handleClickOutside(e: MouseEvent) {
-  const target = e.target as HTMLElement
-  if (target.classList.contains('MediaViewerSlides') || target.classList.contains('current-image-container')) {
-    emit('close')
-  }
-}
-
-onMounted(() => {
-  checkMobile()
-  window.addEventListener('resize', checkMobile)
-  document.addEventListener('keydown', handleKeydown)
-  document.body.classList.add('no-scroll')
-  document.documentElement.style.overflow = 'hidden'
-  showHeader()
-  
   preloadAllImages()
 })
 
@@ -276,25 +51,197 @@ onUnmounted(() => {
   window.removeEventListener('resize', checkMobile)
   document.removeEventListener('keydown', handleKeydown)
   document.body.classList.remove('no-scroll')
-  document.documentElement.style.overflow = ''
-  
-  if (tapTimeout) {
-    clearTimeout(tapTimeout)
-    tapTimeout = null
-  }
-  if (headerTimeout) {
-    clearTimeout(headerTimeout)
-    headerTimeout = null
-  }
+  if (transitionTimer) clearTimeout(transitionTimer)
+  if (headerTimeout) clearTimeout(headerTimeout)
 })
+
+
+function preloadAllImages() {
+  const index = props.currentIndex
+  for (let i = 1; i <= 5; i++) {
+    if (index + i < props.photos.length) {
+      const img = new Image()
+      img.src = props.photos[index + i].url
+    }
+    if (index - i >= 0) {
+      const img = new Image()
+      img.src = props.photos[index - i].url
+    }
+  }
+}
+
+function preloadAdjacent() {
+  const index = props.currentIndex
+  for (let i = 1; i <= 3; i++) {
+    if (index + i < props.photos.length) {
+      const img = new Image()
+      img.src = props.photos[index + i].url
+    }
+    if (index - i >= 0) {
+      const img = new Image()
+      img.src = props.photos[index - i].url
+    }
+  }
+}
+
+
+function nextPhoto() {
+  if (isAnimating.value) return
+  if (props.currentIndex === props.photos.length - 1) {
+    emit('loadMore')
+    return
+  }
+  
+  const nextIndex = props.currentIndex + 1
+  nextPhotoCache.value = props.photos[nextIndex]
+  
+  isAnimating.value = true
+  slideOffset.value = -100 
+  
+  transitionTimer = setTimeout(() => {
+    emit('update:currentIndex', nextIndex)
+    displayPhoto.value = props.photos[nextIndex]
+    slideOffset.value = 0
+    isAnimating.value = false
+    nextPhotoCache.value = null
+    transitionTimer = null
+  }, 200)
+  
+  preloadAdjacent()
+}
+
+function previousPhoto() {
+  if (isAnimating.value) return
+  if (props.currentIndex === 0) return
+  
+  const prevIndex = props.currentIndex - 1
+  prevPhotoCache.value = props.photos[prevIndex]
+  
+  isAnimating.value = true
+  slideOffset.value = 100 // 
+  
+  transitionTimer = setTimeout(() => {
+    emit('update:currentIndex', prevIndex)
+    displayPhoto.value = props.photos[prevIndex]
+    slideOffset.value = 0
+    isAnimating.value = false
+    prevPhotoCache.value = null
+    transitionTimer = null
+  }, 200)
+  
+  preloadAdjacent()
+}
+
+function handleTouchStart(e: TouchEvent) {
+  if (isAnimating.value) return
+  showHeader()
+  touchStartX.value = e.touches[0].clientX
+}
+
+function handleTouchMove(e: TouchEvent) {
+  if (isAnimating.value) return
+  const deltaX = e.touches[0].clientX - touchStartX.value
+  
+  if (Math.abs(deltaX) > 10) {
+    e.preventDefault()
+    let offset = deltaX / 2
+    if (props.currentIndex === 0 && offset > 0) {
+      offset = offset / 3 
+    }
+    if (props.currentIndex === props.photos.length - 1 && offset < 0) {
+      offset = offset / 3 
+    }
+    slideOffset.value = Math.max(Math.min(offset, 100), -100) 
+  }
+}
+
+function handleTouchEnd(e: TouchEvent) {
+  if (isAnimating.value) return
+  const deltaX = e.changedTouches[0].clientX - touchStartX.value
+  const absDelta = Math.abs(deltaX)
+  
+  if (absDelta > 50) {
+    if (deltaX < 0 && props.currentIndex < props.photos.length - 1) {
+      nextPhoto()
+    } else if (deltaX > 0 && props.currentIndex > 0) {
+      previousPhoto()
+    } else {
+      slideOffset.value = 0 
+    }
+  } else {
+    slideOffset.value = 0 
+  }
+}
+
+
+function handleKeydown(e: KeyboardEvent) {
+  if (isAnimating.value) return
+  switch (e.key) {
+    case 'Escape': emit('close'); break
+    case 'ArrowLeft': e.preventDefault(); previousPhoto(); break
+    case 'ArrowRight': e.preventDefault(); nextPhoto(); break
+  }
+}
+
+watch(() => props.currentIndex, (newIndex) => {
+  if (shouldLoadMore.value) emit('loadMore')
+  displayPhoto.value = props.photos[newIndex]
+  preloadAdjacent()
+})
+
+
+function checkMobile() { 
+  isMobile.value = window.innerWidth <= 768 
+}
+
+async function downloadCurrentPhoto() {
+  try {
+    const photoId = currentPhoto.value?.id
+    if (!photoId) return
+    await tripApi.downloadPhotoAsFile(photoId, currentPhoto.value?.filename || 'photo.jpg')
+  } catch (error) { 
+    console.error('Ошибка скачивания:', error) 
+  }
+}
+
+function showHeader() {
+  isHeaderVisible.value = true
+  if (headerTimeout) clearTimeout(headerTimeout)
+  headerTimeout = setTimeout(() => { 
+    isHeaderVisible.value = false 
+  }, 3000)
+}
+
+function handleMouseMove() { 
+  showHeader() 
+}
+
+function handleImageClick(e: MouseEvent) {
+  if (isAnimating.value) return
+  
+  if (!isMobile.value) {
+    if (isHeaderVisible.value) {
+      isHeaderVisible.value = false
+      if (headerTimeout) clearTimeout(headerTimeout)
+    } else {
+      showHeader()
+    }
+  }
+}
+
+function handleClickOutside(e: MouseEvent) {
+  const target = e.target as HTMLElement
+  if (target.classList.contains('MediaViewerSlides')) {
+    emit('close')
+  }
+}
 </script>
 
 <template>
   <div 
     class="MediaViewer" 
     @mousemove="handleMouseMove"
-    @mouseleave="isHeaderVisible = false"
-  >
+    @mouseleave="isHeaderVisible = false">
     <div 
       class="media-viewer-header" 
       :class="{ 'header-visible': isHeaderVisible, 'header-hidden': !isHeaderVisible }"
@@ -318,21 +265,67 @@ onUnmounted(() => {
 
     <div 
       class="MediaViewerSlides" 
-      @touchstart="handleTouchStart" 
-      @touchmove="handleTouchMove" 
+      @touchstart="handleTouchStart"
+      @touchmove.prevent="handleTouchMove"
       @touchend="handleTouchEnd"
       @click="handleClickOutside"
     >
-      <div class="current-image-container">
-        <img 
-          :src="currentPhoto?.url" 
-          :alt="currentPhoto?.filename" 
-          class="current-image" 
-          draggable="false"
-          @click="handleImageClick"
-          :style="{ transform: scale > 1 ? `scale(${scale})` : 'none' }"
-          fetchpriority="high"
-        />
+      <div class="slider-container">
+        <div 
+          v-if="prevPhotoCache || (props.currentIndex > 0 && !isAnimating)" 
+          class="slide slide-prev"
+          :style="{
+            transform: `translateX(${slideOffset - 100}%)`, // 👈 РОВНО 100%
+            transition: isAnimating ? 'transform 0.2s cubic-bezier(0.2, 0.9, 0.3, 1)' : 'none'
+          }"
+        >
+          <div class="slide-content" :class="{ 'mobile-slide': isMobile }">
+            <img 
+              :src="prevPhotoCache?.url || props.photos[props.currentIndex - 1]?.url" 
+              :alt="prevPhotoCache?.filename || props.photos[props.currentIndex - 1]?.filename"
+              class="slide-image"
+              draggable="false"
+            />
+          </div>
+        </div>
+
+        <div 
+          class="slide slide-current"
+          :style="{
+            transform: `translateX(${slideOffset}%)`,
+            transition: isAnimating ? 'transform 0.2s cubic-bezier(0.2, 0.9, 0.3, 1)' : 'none'
+          }"
+        >
+          <div class="slide-content" :class="{ 'mobile-slide': isMobile }">
+            <img 
+              :src="displayPhoto?.url || currentPhoto?.url" 
+              :alt="displayPhoto?.filename || currentPhoto?.filename"
+              class="slide-image"
+              draggable="false"
+              @click="handleImageClick"
+              :style="{ transform: scale > 1 ? `scale(${scale})` : 'none' }"
+              fetchpriority="high"
+            />
+          </div>
+        </div>
+
+        <div 
+          v-if="nextPhotoCache || (props.currentIndex < props.photos.length - 1 && !isAnimating)" 
+          class="slide slide-next"
+          :style="{
+            transform: `translateX(${slideOffset + 100}%)`, // 👈 РОВНО 100%
+            transition: isAnimating ? 'transform 0.2s cubic-bezier(0.2, 0.9, 0.3, 1)' : 'none'
+          }"
+        >
+          <div class="slide-content" :class="{ 'mobile-slide': isMobile }">
+            <img 
+              :src="nextPhotoCache?.url || props.photos[props.currentIndex + 1]?.url" 
+              :alt="nextPhotoCache?.filename || props.photos[props.currentIndex + 1]?.filename"
+              class="slide-image"
+              draggable="false"
+            />
+          </div>
+        </div>
       </div>
 
       <button 
@@ -340,6 +333,7 @@ onUnmounted(() => {
         class="navigation prev" 
         :class="{ 'nav-visible': isHeaderVisible }"
         @click.stop="previousPhoto" 
+        :disabled="isAnimating || props.currentIndex === 0"
         aria-label="Previous"
       >
         <Icon class="nav-icon" :size="32" color="#fff" :filled="true">
@@ -352,6 +346,7 @@ onUnmounted(() => {
         class="navigation next" 
         :class="{ 'nav-visible': isHeaderVisible }"
         @click.stop="nextPhoto" 
+        :disabled="isAnimating || props.currentIndex === props.photos.length - 1"
         aria-label="Next"
       >
         <Icon class="nav-icon" :size="32" color="#fff" :filled="true">
@@ -361,7 +356,6 @@ onUnmounted(() => {
     </div>
   </div>
 </template>
-
 
 <style scoped>
 .MediaViewer {
@@ -375,7 +369,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  touch-action: none;
+  touch-action: pan-y;
 }
 
 .media-viewer-header {
@@ -410,7 +404,6 @@ onUnmounted(() => {
   pointer-events: none;
 }
 
-
 .header-actions {
   display: flex;
   width: 100%;
@@ -441,12 +434,6 @@ onUnmounted(() => {
   transform: scale(1.05);
 }
 
-.download-icon,
-.close-icon {
-  width: 20px;
-  height: 20px;
-}
-
 .MediaViewerSlides {
   flex: 1;
   position: relative;
@@ -456,51 +443,59 @@ onUnmounted(() => {
   justify-content: center;
   width: 100%;
   height: 100%;
-  touch-action: none;
 }
 
-.current-image-container {
+.slider-container {
+  position: relative;
   width: 100%;
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0;
-  margin: 0;
-  touch-action: none;
 }
 
-.current-image {
+.slide {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  will-change: transform;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+.slide-content {
+  width: calc(100% - 60px);
+  height: calc(100% - 60px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-slide {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.slide-image {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  transition: transform 0.3s ease;
-  transform-origin: center center;
-  -webkit-user-drag: none;
   user-select: none;
-  -webkit-touch-callout: none;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: none;
+  -webkit-user-drag: none;
 }
 
 
-.spinner {
-  width: 20px;
-  height: 20px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top: 2px solid white;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
+
+.slide-current {
+  z-index: 10;
 }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateX(-50%) translateY(20px); }
-  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+.slide-prev,
+.slide-next {
+  z-index: 5;
 }
 
 .navigation {
@@ -518,48 +513,42 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   opacity: 0;
-  transition: opacity 0.3s ease, background-color 0.2s, transform 0.2s;
-  z-index: 15;
+  transition: opacity 0.3s ease, background-color 0.2s;
+  z-index: 30;
   padding: 0;
   backdrop-filter: blur(4px);
   pointer-events: none;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.navigation:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
 }
 
 .nav-visible {
-  opacity: 0.8;
+  opacity: 0.9;
   pointer-events: auto;
 }
 
-.navigation:hover {
-  opacity: 1 !important;
+.navigation:hover:not(:disabled) {
+  opacity: 1;
   background: rgba(255, 255, 255, 0.3);
-  transform: translateY(-50%) scale(1.05);
 }
 
 .prev {
-  left: 20px;
+  left: 24px;
 }
 
 .next {
-  right: 20px;
+  right: 24px;
 }
 
 .nav-icon {
   width: 32px;
   height: 32px;
-}
-
-.MediaViewer {
-  animation: fadeIn 0.2s ease;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
 }
 
 .no-scroll {
@@ -569,69 +558,37 @@ onUnmounted(() => {
   height: 100%;
 }
 
-:deep(*) {
-  box-sizing: border-box;
-}
 
 @media (max-width: 768px) {
-  .current-image {
-    width: 100vw !important;
-    height: auto !important;
-    max-height: 100vh !important;
-    object-fit: contain !important;
-    object-position: center !important;
-    display: block !important;
-  }
-
-  .current-image-container {
-    width: 100vw !important;
-    height: 100vh !important;
-    padding: 0 !important;
-    margin: 0 !important;
-  }
-
   .media-viewer-header {
     height: 70px;
-    background: linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0) 100%);
   }
 
   .header-content {
     padding: 12px 16px;
   }
 
- 
   .download-button,
   .close-button {
     width: 36px;
     height: 36px;
   }
 
-  .download-icon,
-  .close-icon {
-    width: 18px;
-    height: 18px;
-  }
-
-
   .navigation {
     display: none;
   }
+
+  .slide-content {
+    width: 100% !important;
+    height: 100% !important;
+  }
 }
 
-@media (min-width: 769px) {
-  .current-image {
-    max-width: 100% !important;
-    max-height: calc(100vh - 56px) !important;
-    height: auto !important;
-    width: auto !important;
-    object-fit: contain !important;
-    object-position: center !important;
-    display: block !important;
-  }
 
-  .current-image-container {
-    max-width: 100vw;
-    max-height: 100vh;
+@media (min-width: 1440px) {
+  .slide-content {
+    width: calc(100% - 80px);
+    height: calc(100% - 80px);
   }
 }
 </style>
