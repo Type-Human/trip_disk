@@ -17,8 +17,8 @@ const isDragging = ref(false)
 const selectedFolder = ref<string | null>(props.selectedFolderId || '')
 const objectUrls = ref<Map<File, string>>(new Map())
 
-
-const MAX_FILES = 20
+const MAX_FILES = 1000  
+const MAX_FILE_SIZE = 10 * 1024 * 1024 
 
 function getObjectUrl(file: File): string {
   if (!objectUrls.value.has(file)) {
@@ -36,9 +36,7 @@ function revokeObjectUrl(file: File) {
 }
 
 function cleanupUrls() {
-  objectUrls.value.forEach((url) => {
-    URL.revokeObjectURL(url)
-  })
+  objectUrls.value.forEach((url) => URL.revokeObjectURL(url))
   objectUrls.value.clear()
 }
 
@@ -62,19 +60,15 @@ function handleFileSelect(e: Event) {
   const input = e.target as HTMLInputElement
   const selectedFiles = Array.from(input.files || [])
   addFiles(selectedFiles)
-  
-
   input.value = ''
 }
 
 function addFiles(newFiles: File[]) {
   const imageFiles = newFiles.filter(file => file.type.startsWith('image/'))
-  const validFiles = imageFiles.filter(file => file.size <= 10 * 1024 * 1024) 
+  const validFiles = imageFiles.filter(file => file.size <= MAX_FILE_SIZE)
   
-
   const remainingSlots = MAX_FILES - files.value.length
   const filesToAdd = validFiles.slice(0, remainingSlots)
-  
   
   files.value = [...files.value, ...filesToAdd]
 }
@@ -87,18 +81,16 @@ function removeFile(index: number) {
 
 function handleUpload() {
   if (files.value.length === 0) return
-
   emit('upload', files.value, selectedFolder.value || undefined)
 }
 
 function formatFileSize(bytes: number): string {
   if (bytes === 0) return '0 Bytes'
   const k = 1024
-  const sizes = ['Bytes', 'KB', 'MB', 'GB']
+  const sizes = ['Bytes', 'KB', 'MB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return `${parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`
 }
-
 
 function handleKeydown(e: KeyboardEvent) {
   if (e.key === 'Escape' && !props.isUploading) {
@@ -122,51 +114,49 @@ document.addEventListener('keydown', handleKeydown)
         <div class="file-counter" v-if="files.length > 0">
           {{ files.length }}/{{ MAX_FILES }}
         </div>
-        <button class="close-btn" :disabled="props.isUploading" @click="emit('close')" @keydown.enter="emit('close')">
+        <button class="close-btn" :disabled="props.isUploading" @click="emit('close')">
           ✕
         </button>
       </div>
 
-      <div class="drop-zone" :class="{ dragging: isDragging }" @dragover="handleDragOver" @dragleave="handleDragLeave"
+      <div class="drop-zone" :class="{ dragging: isDragging }" 
+        @dragover="handleDragOver" 
+        @dragleave="handleDragLeave"
         @drop="handleDrop">
         <div class="drop-content">
-          <div class="upload-icon">
-            📷
-          </div>
+          <div class="upload-icon">📷</div>
           <p>Перетащите сюда фото или</p>
           <label class="browse-btn">
             <input type="file" multiple accept="image/*" :disabled="props.isUploading" @change="handleFileSelect">
             Выбрать файлы
           </label>
           <p class="hint">
-            Поддерживаются JPG, PNG, GIF, WebP (до 10MB)<br>
+            JPG, PNG, GIF, WebP (до 10MB)<br>
             Максимум: {{ MAX_FILES }} файлов
           </p>
         </div>
       </div>
 
       <div v-if="props.folders && props.folders.length > 0" class="folder-select">
-        <CustomSelect :folders="props.folders" :selected-folder-id="selectedFolder" :is-uploading="props.isUploading"
-          @update:selectedFolderId="selectedFolder = $event" />
+        <CustomSelect 
+          :folders="props.folders" 
+          :selected-folder-id="selectedFolder" 
+          :is-uploading="props.isUploading"
+          @update:selectedFolderId="selectedFolder = $event" 
+        />
       </div>
 
       <div v-if="files.length > 0" class="file-list">
-        <h3>Выбранные файлы ({{ files.length }})</h3>
+        <h3>Выбрано файлов: {{ files.length }}</h3>
         <div class="files-grid">
           <div v-for="(file, index) in files" :key="index" class="file-item">
             <div class="file-preview">
               <img v-if="file.type.startsWith('image/')" :src="getObjectUrl(file)" :alt="file.name">
-              <div v-else class="file-icon">
-                📄
-              </div>
+              <div v-else class="file-icon">📄</div>
             </div>
             <div class="file-info">
-              <p class="file-name">
-                {{ file.name }}
-              </p>
-              <p class="file-size">
-                {{ formatFileSize(file.size) }}
-              </p>
+              <p class="file-name">{{ file.name }}</p>
+              <p class="file-size">{{ formatFileSize(file.size) }}</p>
             </div>
             <button class="remove-btn" :disabled="props.isUploading" @click="removeFile(index)">
               ✕

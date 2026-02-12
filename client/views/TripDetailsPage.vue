@@ -10,6 +10,7 @@ import BackBtn from "../components/ui/BackBtn.vue";
 import Icon from "../components/ui/Icon.vue";
 import PhotoUpload from "../components/upload/PhotoUpload.vue";
 import DeleteModal from "../components/modals/DeleteModal.vue";
+import UploadProgress from "../components/upload/UploadProgress.vue";
 
 const route = useRoute();
 const tripId = route.params.id as string;
@@ -32,11 +33,19 @@ const showDeleteModal = ref(false);
 const folderIdDelete = ref<string | false>(false);
 const isDeleting = ref(false);
 
+
 const currentPage = ref(1);
 const totalPages = ref(1);
 const totalPhotos = ref(0);
 const hasMore = ref(false);
 const isLoadingMore = ref(false);
+
+
+const uploadProgress = ref(0);
+const uploadResults = ref<Array<{ name: string; success: boolean; error?: string }>>([]);
+const abortController = ref<AbortController | null>(null);
+const totalFiles = ref(0);
+const completedFiles = ref(0);
 
 const selectionMode = ref(false);
 
@@ -151,27 +160,75 @@ watch(
   },
 );
 
+
 async function handlePhotoUpload(files: File[], folderId?: string) {
-  try {
-    isUploading.value = true;
-    const targetFolderId =
-      folderId ||
-      (activeFolder.value !== "all" ? activeFolder.value : undefined);
-    const uploadedPhotos = await tripApi.uploadPhotos(
-      tripId,
-      files,
-      targetFolderId,
-    );
+  if (files.length === 0) return;
+  
+  isUploading.value = true;
+  uploadProgress.value = 0;
+  uploadResults.value = [];
+  totalFiles.value = files.length;
+  completedFiles.value = 0;
+  abortController.value = new AbortController();
+  
+  let successCount = 0;
+  let failedCount = 0;
+  
 
-    photos.value = [...photos.value, ...uploadedPhotos];
-    totalPhotos.value += uploadedPhotos.length;
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    
+    try {
 
-    showUpload.value = false;
-  } catch (error) {
-    console.error("Ошибка загрузки фото:", error);
-  } finally {
-    isUploading.value = false;
+      const uploadedPhotos = await tripApi.uploadPhotos(
+        tripId,
+        [file],
+        folderId
+      );
+      
+      photos.value = [...photos.value, ...uploadedPhotos];
+      totalPhotos.value += uploadedPhotos.length;
+      
+      successCount++;
+      uploadResults.value.push({ 
+        name: file.name, 
+        success: true 
+      });
+    } catch (error) {
+      console.error(`Ошибка загрузки ${file.name}:`, error);
+      failedCount++;
+      uploadResults.value.push({ 
+        name: file.name, 
+        success: false,
+        error: error instanceof Error ? error.message : 'Ошибка загрузки'
+      });
+    } finally {
+      completedFiles.value++;
+      uploadProgress.value = (completedFiles.value / totalFiles.value) * 100;
+    }
+
+    if (i % 10 === 9) {
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
   }
+  
+
+
+  isUploading.value = false;
+  showUpload.value = false;
+  abortController.value = null;
+}
+
+function cancelUpload() {
+  if (abortController.value) {
+    abortController.value.abort();
+    abortController.value = null;
+  }
+  isUploading.value = false;
+  uploadProgress.value = 0;
+  uploadResults.value = [];
+  totalFiles.value = 0;
+  completedFiles.value = 0;
 }
 
 async function handleCreateFolder(name: string) {
@@ -259,9 +316,7 @@ onMounted(() => {
       <button
         v-if="!selectionMode && filteredPhotos?.length > 0"
         class="manage-photos-btn"
-        :title="
-          selectionMode ? 'Выйти из режима выбора' : 'Управление фотографиями'
-        "
+        :title="selectionMode ? 'Выйти из режима выбора' : 'Управление фотографиями'"
         @click="startSelection"
       >
         <Icon :size="20" filled color="#FF0000">
@@ -277,7 +332,6 @@ onMounted(() => {
         <button class="btn-primary" @click="showUpload = true">
           Добавить фото
         </button>
-        
       </div>
       <div class="mobile-menu">
         <button
@@ -360,6 +414,7 @@ onMounted(() => {
       @load-more="loadMorePhotos"
     />
 
+    <!-- Компонент загрузки фото -->
     <PhotoUpload
       v-if="showUpload"
       :folders="realFolders"
@@ -367,6 +422,15 @@ onMounted(() => {
       :is-uploading="isUploading"
       @close="showUpload = false"
       @upload="handlePhotoUpload"
+    />
+
+    <!-- Компонент прогресса загрузки -->
+    <UploadProgress
+      :show="isUploading"
+      :total="totalFiles"
+      :completed="completedFiles"
+      :results="uploadResults"
+      @cancel="cancelUpload"
     />
 
     <AddFolderModal
@@ -769,7 +833,6 @@ onMounted(() => {
   from {
     opacity: 0;
   }
-
   to {
     opacity: 1;
   }
@@ -777,11 +840,12 @@ onMounted(() => {
 
 @keyframes slideUp {
   from {
-    transform: translateY(100%);
+    transform: translateY(20px);
+    opacity: 0;
   }
-
   to {
     transform: translateY(0);
+    opacity: 1;
   }
 }
 
