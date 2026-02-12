@@ -20,6 +20,7 @@ const currentPhoto = computed(() => props.photos[props.currentIndex])
 
 
 const isAnimating = ref(false)
+const isTouchBlocked = ref(false) 
 const displayPhoto = ref<Photo | null>(null)
 const nextPhotoCache = ref<Photo | null>(null)
 const prevPhotoCache = ref<Photo | null>(null)
@@ -31,6 +32,7 @@ const scale = ref(1)
 
 let headerTimeout: ReturnType<typeof setTimeout> | null = null
 let transitionTimer: ReturnType<typeof setTimeout> | null = null
+let touchBlockTimer: ReturnType<typeof setTimeout> | null = null
 
 const shouldLoadMore = computed(() => {
   return props.currentIndex >= props.photos.length - 3
@@ -52,6 +54,7 @@ onUnmounted(() => {
   document.removeEventListener('keydown', handleKeydown)
   document.body.classList.remove('no-scroll')
   if (transitionTimer) clearTimeout(transitionTimer)
+  if (touchBlockTimer) clearTimeout(touchBlockTimer)
   if (headerTimeout) clearTimeout(headerTimeout)
 })
 
@@ -95,8 +98,16 @@ function nextPhoto() {
   const nextIndex = props.currentIndex + 1
   nextPhotoCache.value = props.photos[nextIndex]
   
+
   isAnimating.value = true
-  slideOffset.value = -100 
+  isTouchBlocked.value = true
+  slideOffset.value = -100
+  
+  if (touchBlockTimer) clearTimeout(touchBlockTimer)
+  touchBlockTimer = setTimeout(() => {
+    isTouchBlocked.value = false
+    touchBlockTimer = null
+  }, 300)
   
   transitionTimer = setTimeout(() => {
     emit('update:currentIndex', nextIndex)
@@ -117,8 +128,16 @@ function previousPhoto() {
   const prevIndex = props.currentIndex - 1
   prevPhotoCache.value = props.photos[prevIndex]
   
+
   isAnimating.value = true
-  slideOffset.value = 100 // 
+  isTouchBlocked.value = true
+  slideOffset.value = 100
+  
+  if (touchBlockTimer) clearTimeout(touchBlockTimer)
+  touchBlockTimer = setTimeout(() => {
+    isTouchBlocked.value = false
+    touchBlockTimer = null
+  }, 300)
   
   transitionTimer = setTimeout(() => {
     emit('update:currentIndex', prevIndex)
@@ -132,31 +151,48 @@ function previousPhoto() {
   preloadAdjacent()
 }
 
+
 function handleTouchStart(e: TouchEvent) {
-  if (isAnimating.value) return
+ 
+  if (isAnimating.value || isTouchBlocked.value) {
+    e.preventDefault()
+    return
+  }
+  
   showHeader()
   touchStartX.value = e.touches[0].clientX
 }
 
 function handleTouchMove(e: TouchEvent) {
-  if (isAnimating.value) return
+  
+  if (isAnimating.value || isTouchBlocked.value) {
+    e.preventDefault()
+    return
+  }
+  
   const deltaX = e.touches[0].clientX - touchStartX.value
   
   if (Math.abs(deltaX) > 10) {
     e.preventDefault()
     let offset = deltaX / 2
+    
     if (props.currentIndex === 0 && offset > 0) {
-      offset = offset / 3 
+      offset = offset / 3
     }
     if (props.currentIndex === props.photos.length - 1 && offset < 0) {
-      offset = offset / 3 
+      offset = offset / 3
     }
-    slideOffset.value = Math.max(Math.min(offset, 100), -100) 
+    slideOffset.value = Math.max(Math.min(offset, 100), -100)
   }
 }
 
 function handleTouchEnd(e: TouchEvent) {
-  if (isAnimating.value) return
+
+  if (isAnimating.value || isTouchBlocked.value) {
+    e.preventDefault()
+    return
+  }
+  
   const deltaX = e.changedTouches[0].clientX - touchStartX.value
   const absDelta = Math.abs(deltaX)
   
@@ -166,16 +202,16 @@ function handleTouchEnd(e: TouchEvent) {
     } else if (deltaX > 0 && props.currentIndex > 0) {
       previousPhoto()
     } else {
-      slideOffset.value = 0 
+      slideOffset.value = 0
     }
   } else {
-    slideOffset.value = 0 
+    slideOffset.value = 0
   }
 }
 
 
 function handleKeydown(e: KeyboardEvent) {
-  if (isAnimating.value) return
+  if (isAnimating.value || isTouchBlocked.value) return
   switch (e.key) {
     case 'Escape': emit('close'); break
     case 'ArrowLeft': e.preventDefault(); previousPhoto(); break
@@ -217,7 +253,7 @@ function handleMouseMove() {
 }
 
 function handleImageClick(e: MouseEvent) {
-  if (isAnimating.value) return
+  if (isAnimating.value || isTouchBlocked.value) return
   
   if (!isMobile.value) {
     if (isHeaderVisible.value) {
@@ -241,7 +277,10 @@ function handleClickOutside(e: MouseEvent) {
   <div 
     class="MediaViewer" 
     @mousemove="handleMouseMove"
-    @mouseleave="isHeaderVisible = false">
+    @mouseleave="isHeaderVisible = false"
+    :class="{ 'touch-blocked': isTouchBlocked }" 
+  >
+
     <div 
       class="media-viewer-header" 
       :class="{ 'header-visible': isHeaderVisible, 'header-hidden': !isHeaderVisible }"
@@ -275,7 +314,7 @@ function handleClickOutside(e: MouseEvent) {
           v-if="prevPhotoCache || (props.currentIndex > 0 && !isAnimating)" 
           class="slide slide-prev"
           :style="{
-            transform: `translateX(${slideOffset - 100}%)`, // 👈 РОВНО 100%
+            transform: `translateX(${slideOffset - 100}%)`,
             transition: isAnimating ? 'transform 0.2s cubic-bezier(0.2, 0.9, 0.3, 1)' : 'none'
           }"
         >
@@ -288,7 +327,6 @@ function handleClickOutside(e: MouseEvent) {
             />
           </div>
         </div>
-
         <div 
           class="slide slide-current"
           :style="{
@@ -313,7 +351,7 @@ function handleClickOutside(e: MouseEvent) {
           v-if="nextPhotoCache || (props.currentIndex < props.photos.length - 1 && !isAnimating)" 
           class="slide slide-next"
           :style="{
-            transform: `translateX(${slideOffset + 100}%)`, // 👈 РОВНО 100%
+            transform: `translateX(${slideOffset + 100}%)`,
             transition: isAnimating ? 'transform 0.2s cubic-bezier(0.2, 0.9, 0.3, 1)' : 'none'
           }"
         >
@@ -354,6 +392,8 @@ function handleClickOutside(e: MouseEvent) {
         </Icon>
       </button>
     </div>
+    
+    <div v-if="isTouchBlocked && isMobile" class="touch-block-indicator"></div>
   </div>
 </template>
 
@@ -370,6 +410,32 @@ function handleClickOutside(e: MouseEvent) {
   flex-direction: column;
   overflow: hidden;
   touch-action: pan-y;
+}
+
+
+.touch-blocked {
+  cursor: wait;
+}
+
+.touch-block-indicator {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(4px);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  z-index: 100;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  animation: fadeInOut 0.3s ease;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
 }
 
 .media-viewer-header {
@@ -466,6 +532,7 @@ function handleClickOutside(e: MouseEvent) {
   transform: translateZ(0);
 }
 
+
 .slide-content {
   width: calc(100% - 60px);
   height: calc(100% - 60px);
@@ -473,6 +540,7 @@ function handleClickOutside(e: MouseEvent) {
   align-items: center;
   justify-content: center;
 }
+
 
 .mobile-slide {
   width: 100% !important;
@@ -486,6 +554,8 @@ function handleClickOutside(e: MouseEvent) {
   user-select: none;
   -webkit-user-drag: none;
 }
+
+
 
 
 
