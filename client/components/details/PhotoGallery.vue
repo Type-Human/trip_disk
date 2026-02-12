@@ -298,13 +298,8 @@ watch(
         class="toolbar-btn delete-btn"
         @click="deleteSelected"
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-          <path
-            d="M6 19C6 20.1 6.9 21 8 21H16C17.1 21 18 20.1 18 19V7H6V19ZM19 4H15.5L14.5 3H9.5L8.5 4H5V6H19V4Z"
-            fill="#FF0000"
-          />
-        </svg>
-        Удалить ({{ selectedCount }})
+       
+        Удалить 
       </button>
 
       <button class="toolbar-btn cancel-btn" @click="handleCancel">
@@ -699,7 +694,7 @@ watch(
     flex: 1;
     justify-content: center;
     padding: 12px;
-    font-size: 15px;
+    font-size: 11px;
     min-width: 0;
   }
 
