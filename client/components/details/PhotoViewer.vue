@@ -393,7 +393,6 @@ function handleClickOutside(e: MouseEvent) {
       </button>
     </div>
     
-    <div v-if="isTouchBlocked && isMobile" class="touch-block-indicator"></div>
   </div>
 </template>
 
@@ -417,21 +416,6 @@ function handleClickOutside(e: MouseEvent) {
   cursor: wait;
 }
 
-.touch-block-indicator {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(4px);
-  color: white;
-  padding: 8px 16px;
-  border-radius: 20px;
-  font-size: 14px;
-  z-index: 100;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  animation: fadeInOut 0.3s ease;
-}
 
 @keyframes fadeInOut {
   0% { opacity: 0; }
