@@ -18,7 +18,7 @@ const selectedFolder = ref<string | null>(props.selectedFolderId || '')
 const objectUrls = ref<Map<File, string>>(new Map())
 
 
-const MAX_FILES = 100
+const MAX_FILES = 20
 
 function getObjectUrl(file: File): string {
   if (!objectUrls.value.has(file)) {

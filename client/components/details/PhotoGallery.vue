@@ -250,7 +250,7 @@ watch(
         </div>
       </div>
 
-      <!-- Прелоадер поверх фото при смене папки -->
+ 
       <div v-if="isLoading" class="skeleton-overlay">
         <div class="spinner"></div>
         <p>Загрузка...</p>
