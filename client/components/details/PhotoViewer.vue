@@ -61,18 +61,15 @@
         class="swiper-container"
       >
         <swiper-slide v-for="(photo, index) in props.photos" :key="photo.id">
-          <div class="slide-wrapper">
+          <div class="slide-wrapper" @click="handleImageClick">
             <div class="swiper-zoom-container">
-
               <img 
                 :data-src="photo.url"
                 :src="photo.url" 
                 :alt="photo.filename"
                 class="slide-image"
                 draggable="false"
-                @click="handleImageClick"
               />
-  
             </div>
           </div>
         </swiper-slide>
@@ -111,11 +108,9 @@ import { computed, onMounted, ref, onUnmounted, watch } from 'vue'
 import Icon from '../ui/Icon.vue';
 import { tripApi } from '@/api';
 
-
 import { Swiper, SwiperSlide } from 'swiper/vue'
 import { Navigation, Pagination, Zoom, Keyboard, A11y } from 'swiper/modules'
 import type { Swiper as SwiperType } from 'swiper'
-
 
 import 'swiper/css'
 import 'swiper/css/navigation'
@@ -150,8 +145,6 @@ onMounted(() => {
   document.addEventListener('keydown', handleKeydown)
   document.body.classList.add('no-scroll')
   showHeader()
-  
-
   preloadImages()
 })
 
@@ -161,7 +154,6 @@ onUnmounted(() => {
   document.body.classList.remove('no-scroll')
   if (headerTimeout) clearTimeout(headerTimeout)
 })
-
 
 function preloadImages() {
   const index = props.currentIndex
@@ -253,13 +245,11 @@ function handleMouseMove() {
 }
 
 function handleImageClick() {
-  if (!isMobile.value) {
-    if (isHeaderVisible.value) {
-      isHeaderVisible.value = false
-      if (headerTimeout) clearTimeout(headerTimeout)
-    } else {
-      showHeader()
-    }
+  if (isHeaderVisible.value) {
+    isHeaderVisible.value = false
+    if (headerTimeout) clearTimeout(headerTimeout)
+  } else {
+    showHeader()
   }
 }
 </script>
@@ -278,14 +268,12 @@ function handleImageClick() {
   overflow: hidden;
 }
 
-/* Хедер */
 .media-viewer-header {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   height: 80px;
-  background: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);
   z-index: 20;
   transition: opacity 0.3s ease, transform 0.3s ease;
   pointer-events: none;
@@ -341,7 +329,6 @@ function handleImageClick() {
   transform: scale(1.05);
 }
 
-
 .MediaViewerSlides {
   flex: 1;
   position: relative;
@@ -352,7 +339,6 @@ function handleImageClick() {
   width: 100%;
   height: 100%;
 }
-
 
 .swiper-container {
   width: 100%;
@@ -371,7 +357,6 @@ function handleImageClick() {
   height: 100%;
 }
 
-
 .slide-wrapper {
   width: 100%;
   height: 100%;
@@ -381,7 +366,6 @@ function handleImageClick() {
   padding: 30px;
 }
 
-
 .swiper-zoom-container {
   width: 100%;
   height: 100%;
@@ -389,7 +373,6 @@ function handleImageClick() {
   align-items: center;
   justify-content: center;
 }
-
 
 .slide-image {
   max-width: 100%;
@@ -454,14 +437,12 @@ function handleImageClick() {
   filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
 }
 
-
 .no-scroll {
   overflow: hidden !important;
   position: fixed;
   width: 100%;
   height: 100%;
 }
-
 
 @media (max-width: 768px) {
   .media-viewer-header {
