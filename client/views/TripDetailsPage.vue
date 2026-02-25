@@ -1,3 +1,4 @@
+
 <script setup lang="ts">
 import type { Folder, Photo, Trip } from "../types/trip";
 import { computed, onMounted, ref, watch } from "vue";
@@ -33,6 +34,8 @@ const showDeleteModal = ref(false);
 const folderIdDelete = ref<string | false>(false);
 const isDeleting = ref(false);
 
+const loadedImages = ref<Set<string>>(new Set())
+const loadingImages = ref<Set<string>>(new Set())
 
 const currentPage = ref(1);
 const totalPages = ref(1);
@@ -293,8 +296,48 @@ function closeDeleteModal() {
   }
 }
 
+function preloadImage(url: string) {
+  if (loadedImages.value.has(url) || loadingImages.value.has(url)) return
+  
+  loadingImages.value.add(url)
+  const img = new Image()
+  img.src = url
+  img.fetchPriority = 'low'
+  img.onload = () => {
+    loadedImages.value.add(url)
+    loadingImages.value.delete(url)
+  }
+  img.onerror = () => {
+    loadingImages.value.delete(url)
+  }
+}
+
 function openPhotoViewer(index: number) {
   if (selectionMode.value) return;
+  
+  const currentPhotos = filteredPhotos.value
+  const photo = currentPhotos[index]
+  
+  if (photo) {
+    if (!loadedImages.value.has(photo.url)) {
+      const img = new Image()
+      img.src = photo.url
+      img.fetchPriority = 'high'
+      img.onload = () => {
+        loadedImages.value.add(photo.url)
+      }
+    }
+    
+    for (let i = 1; i <= 2; i++) {
+      if (index + i < currentPhotos.length) {
+        preloadImage(currentPhotos[index + i].url)
+      }
+      if (index - i >= 0) {
+        preloadImage(currentPhotos[index - i].url)
+      }
+    }
+  }
+  
   currentPhotoIndex.value = index;
   showPhotoViewer.value = true;
 }
@@ -414,7 +457,6 @@ onMounted(() => {
       @load-more="loadMorePhotos"
     />
 
-    <!-- Компонент загрузки фото -->
     <PhotoUpload
       v-if="showUpload"
       :folders="realFolders"
@@ -424,7 +466,6 @@ onMounted(() => {
       @upload="handlePhotoUpload"
     />
 
-    <!-- Компонент прогресса загрузки -->
     <UploadProgress
       :show="isUploading"
       :total="totalFiles"

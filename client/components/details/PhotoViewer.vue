@@ -1,3 +1,4 @@
+
 <template>
   <div 
     class="MediaViewer" 
@@ -42,7 +43,7 @@
           toggle: false
         }"
         :keyboard="{
-          enabled: true,
+          enabled: !isMobile,
           onlyInViewport: true
         }"
         :touch-ratio="1.5"
@@ -50,11 +51,8 @@
         :speed="300"
         :threshold="10"
         :long-swipes-ratio="0.2"
-        :preload-images="true"
-        :lazy="{
-          loadPrevNext: true,
-          loadPrevNextAmount: 3
-        }"
+        :preload-images="false"
+        :lazy="false"
         @slideChange="onSlideChange"
         @reachEnd="onReachEnd"
         @swiper="onSwiperInit"
@@ -62,14 +60,14 @@
         class="swiper-container"
       >
         <swiper-slide v-for="(photo, index) in props.photos" :key="photo.id">
-          <div class="slide-wrapper">
+          <div class="slide-wrapper" :class="{ 'mobile-slide': isMobile }">
             <div class="swiper-zoom-container">
               <img 
-                :data-src="photo.url"
-                :src="photo.url" 
+                :src="photo.url"
                 :alt="photo.filename"
                 class="slide-image"
                 draggable="false"
+                loading="lazy"
               />
             </div>
           </div>
@@ -105,14 +103,12 @@
 
 <script setup lang="ts">
 import type { Photo } from '../../types/trip'
-import { computed, onMounted, ref, onUnmounted, watch } from 'vue'
+import { computed, onMounted, ref, onUnmounted } from 'vue'
 import Icon from '../ui/Icon.vue';
 import { tripApi } from '@/api';
-
 import { Swiper, SwiperSlide } from 'swiper/vue'
 import { Navigation, Pagination, Zoom, Keyboard, A11y } from 'swiper/modules'
 import type { Swiper as SwiperType } from 'swiper'
-
 import 'swiper/css'
 import 'swiper/css/navigation'
 import 'swiper/css/zoom'
@@ -130,13 +126,10 @@ const emit = defineEmits<{
 }>()
 
 const currentPhoto = computed(() => props.photos[props.currentIndex])
-
 const isAnimating = ref(false)
 const isMobile = ref(false)
 const isHeaderVisible = ref(false)
-const scale = ref(1)
 const swiperInstance = ref<SwiperType | null>(null)
-const loadedImages = ref<Set<string>>(new Set()) 
 const lastTapTime = ref(0)
 
 let headerTimeout: ReturnType<typeof setTimeout> | null = null
@@ -147,11 +140,6 @@ onMounted(() => {
   document.addEventListener('keydown', handleKeydown)
   document.body.classList.add('no-scroll')
   showHeader()
-  
-  // Загружаем текущее фото с высоким приоритетом
-  preloadCurrentImage()
-  // Загружаем соседние
-  preloadAdjacentImages()
 })
 
 onUnmounted(() => {
@@ -159,47 +147,6 @@ onUnmounted(() => {
   document.removeEventListener('keydown', handleKeydown)
   document.body.classList.remove('no-scroll')
   if (headerTimeout) clearTimeout(headerTimeout)
-})
-
-function preloadCurrentImage() {
-  const photo = props.photos[props.currentIndex]
-  if (photo && !loadedImages.value.has(photo.url)) {
-    const img = new Image()
-    img.fetchPriority = 'high'
-    img.src = photo.url
-    img.onload = () => loadedImages.value.add(photo.url)
-  }
-}
-
-function preloadAdjacentImages() {
-  const index = props.currentIndex
-  
-  for (let i = 1; i <= 5; i++) {
-    if (index + i < props.photos.length) {
-      const photo = props.photos[index + i]
-      if (!loadedImages.value.has(photo.url)) {
-        const img = new Image()
-        img.fetchPriority = 'low'
-        img.src = photo.url
-        img.onload = () => loadedImages.value.add(photo.url)
-      }
-    }
-    if (index - i >= 0) {
-      const photo = props.photos[index - i]
-      if (!loadedImages.value.has(photo.url)) {
-        const img = new Image()
-        img.fetchPriority = 'low'
-        img.src = photo.url
-        img.onload = () => loadedImages.value.add(photo.url)
-      }
-    }
-  }
-}
-
-watch(() => props.currentIndex, (newIndex, oldIndex) => {
-  // При смене фото загружаем новое с высоким приоритетом
-  preloadCurrentImage()
-  preloadAdjacentImages()
 })
 
 function checkMobile() { 
@@ -219,8 +166,7 @@ function onReachEnd() {
 }
 
 function handleKeydown(e: KeyboardEvent) {
-  if (!swiperInstance.value) return
-  
+  if (!swiperInstance.value || isMobile.value) return
   switch (e.key) {
     case 'Escape': 
       emit('close')
@@ -262,14 +208,12 @@ function handleMouseMove() {
 
 function handleImageClick(e: MouseEvent) {
   const now = Date.now()
-  
   if (isMobile.value) {
     if (now - lastTapTime.value < 300) {
       lastTapTime.value = 0
       return
     }
     lastTapTime.value = now
-    
     if (isHeaderVisible.value) {
       isHeaderVisible.value = false
       if (headerTimeout) clearTimeout(headerTimeout)
@@ -307,6 +251,7 @@ function handleImageClick(e: MouseEvent) {
   left: 0;
   right: 0;
   height: 80px;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);
   z-index: 20;
   transition: opacity 0.3s ease, transform 0.3s ease;
   pointer-events: none;
@@ -397,6 +342,10 @@ function handleImageClick(e: MouseEvent) {
   align-items: center;
   justify-content: center;
   padding: 30px;
+}
+
+.mobile-slide {
+  padding: 0 !important;
 }
 
 .swiper-zoom-container {
