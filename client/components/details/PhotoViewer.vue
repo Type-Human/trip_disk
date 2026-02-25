@@ -147,7 +147,11 @@ onMounted(() => {
   document.addEventListener('keydown', handleKeydown)
   document.body.classList.add('no-scroll')
   showHeader()
-  preloadImages()
+  
+  // Загружаем текущее фото с высоким приоритетом
+  preloadCurrentImage()
+  // Загружаем соседние
+  preloadAdjacentImages()
 })
 
 onUnmounted(() => {
@@ -157,20 +161,25 @@ onUnmounted(() => {
   if (headerTimeout) clearTimeout(headerTimeout)
 })
 
-function preloadImages() {
-  const index = props.currentIndex
-  
-  if (props.photos[index] && !loadedImages.value.has(props.photos[index].url)) {
+function preloadCurrentImage() {
+  const photo = props.photos[props.currentIndex]
+  if (photo && !loadedImages.value.has(photo.url)) {
     const img = new Image()
-    img.src = props.photos[index].url
-    img.onload = () => loadedImages.value.add(props.photos[index].url)
+    img.fetchPriority = 'high'
+    img.src = photo.url
+    img.onload = () => loadedImages.value.add(photo.url)
   }
+}
+
+function preloadAdjacentImages() {
+  const index = props.currentIndex
   
   for (let i = 1; i <= 5; i++) {
     if (index + i < props.photos.length) {
       const photo = props.photos[index + i]
       if (!loadedImages.value.has(photo.url)) {
         const img = new Image()
+        img.fetchPriority = 'low'
         img.src = photo.url
         img.onload = () => loadedImages.value.add(photo.url)
       }
@@ -179,6 +188,7 @@ function preloadImages() {
       const photo = props.photos[index - i]
       if (!loadedImages.value.has(photo.url)) {
         const img = new Image()
+        img.fetchPriority = 'low'
         img.src = photo.url
         img.onload = () => loadedImages.value.add(photo.url)
       }
@@ -186,8 +196,10 @@ function preloadImages() {
   }
 }
 
-watch(() => props.currentIndex, () => {
-  preloadImages()
+watch(() => props.currentIndex, (newIndex, oldIndex) => {
+  // При смене фото загружаем новое с высоким приоритетом
+  preloadCurrentImage()
+  preloadAdjacentImages()
 })
 
 function checkMobile() { 
