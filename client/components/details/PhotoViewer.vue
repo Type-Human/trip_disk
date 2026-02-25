@@ -18,213 +18,277 @@ const emit = defineEmits<{
 
 const currentPhoto = computed(() => props.photos[props.currentIndex])
 
-
 const isAnimating = ref(false)
-const isTouchBlocked = ref(false) 
 const displayPhoto = ref<Photo | null>(null)
 const nextPhotoCache = ref<Photo | null>(null)
 const prevPhotoCache = ref<Photo | null>(null)
 const slideOffset = ref(0)
 const touchStartX = ref(0)
+const touchStartY = ref(0)
 const isMobile = ref(false)
 const isHeaderVisible = ref(false)
 const scale = ref(1)
+const isSwiping = ref(false)
+const swipeDirection = ref<'left' | 'right' | 'vertical' | null>(null)
+const isLoading = ref(true)
 
 let headerTimeout: ReturnType<typeof setTimeout> | null = null
 let transitionTimer: ReturnType<typeof setTimeout> | null = null
-let touchBlockTimer: ReturnType<typeof setTimeout> | null = null
+let animationFrame: number | null = null
+let preloadTimer: ReturnType<typeof setTimeout> | null = null
 
 const shouldLoadMore = computed(() => {
   return props.currentIndex >= props.photos.length - 3
 })
 
 
-onMounted(() => {
-  displayPhoto.value = currentPhoto.value
-  checkMobile()
-  window.addEventListener('resize', checkMobile)
-  document.addEventListener('keydown', handleKeydown)
-  document.body.classList.add('no-scroll')
-  showHeader()
-  preloadAllImages()
-})
+const imageCache = new Map<string, boolean>()
 
-onUnmounted(() => {
-  window.removeEventListener('resize', checkMobile)
-  document.removeEventListener('keydown', handleKeydown)
-  document.body.classList.remove('no-scroll')
-  if (transitionTimer) clearTimeout(transitionTimer)
-  if (touchBlockTimer) clearTimeout(touchBlockTimer)
-  if (headerTimeout) clearTimeout(headerTimeout)
-})
-
-
-function preloadAllImages() {
-  const index = props.currentIndex
-  for (let i = 1; i <= 5; i++) {
-    if (index + i < props.photos.length) {
-      const img = new Image()
-      img.src = props.photos[index + i].url
+function preloadImage(url: string, priority: 'high' | 'low' = 'low'): Promise<void> {
+  if (imageCache.has(url)) {
+    return Promise.resolve()
+  }
+  
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.fetchPriority = priority
+    img.src = url
+    
+    img.onload = () => {
+      imageCache.set(url, true)
+      resolve()
     }
-    if (index - i >= 0) {
-      const img = new Image()
-      img.src = props.photos[index - i].url
+    
+    img.onerror = reject
+  })
+}
+
+async function preloadCurrentImage() {
+  if (currentPhoto.value?.url) {
+    try {
+      isLoading.value = true
+      await preloadImage(currentPhoto.value.url, 'high')
+    } catch (error) {
+      console.error('Ошибка загрузки текущего фото:', error)
+    } finally {
+      isLoading.value = false
     }
   }
 }
 
 function preloadAdjacent() {
   const index = props.currentIndex
-  for (let i = 1; i <= 3; i++) {
+  
+ 
+  if (preloadTimer) clearTimeout(preloadTimer)
+  
+  preloadTimer = setTimeout(() => {
+    for (let i = 1; i <= 3; i++) {
+      if (index + i < props.photos.length) {
+        preloadImage(props.photos[index + i].url, i === 1 ? 'high' : 'low')
+      }
+      if (index - i >= 0) {
+        preloadImage(props.photos[index - i].url, i === 1 ? 'high' : 'low')
+      }
+    }
+    preloadTimer = null
+  }, 100)
+}
+
+function preloadAllImages() {
+  const index = props.currentIndex
+  for (let i = 1; i <= 5; i++) {
     if (index + i < props.photos.length) {
-      const img = new Image()
-      img.src = props.photos[index + i].url
+      preloadImage(props.photos[index + i].url, 'low')
     }
     if (index - i >= 0) {
-      const img = new Image()
-      img.src = props.photos[index - i].url
+      preloadImage(props.photos[index - i].url, 'low')
     }
   }
 }
 
-
-function nextPhoto() {
+function startTransition(direction: 'next' | 'prev') {
   if (isAnimating.value) return
-  if (props.currentIndex === props.photos.length - 1) {
-    emit('loadMore')
+  
+  const canGoNext = direction === 'next' && props.currentIndex < props.photos.length - 1
+  const canGoPrev = direction === 'prev' && props.currentIndex > 0
+  
+  if (!canGoNext && !canGoPrev) {
+    if (direction === 'next' && props.currentIndex === props.photos.length - 1) {
+      emit('loadMore')
+    }
     return
   }
   
-  const nextIndex = props.currentIndex + 1
-  nextPhotoCache.value = props.photos[nextIndex]
+  const newIndex = direction === 'next' 
+    ? props.currentIndex + 1 
+    : props.currentIndex - 1
   
 
-  isAnimating.value = true
-  isTouchBlocked.value = true
-  slideOffset.value = -100
+  if (direction === 'next') {
+    nextPhotoCache.value = props.photos[newIndex]
+  } else {
+    prevPhotoCache.value = props.photos[newIndex]
+  }
   
-  if (touchBlockTimer) clearTimeout(touchBlockTimer)
-  touchBlockTimer = setTimeout(() => {
-    isTouchBlocked.value = false
-    touchBlockTimer = null
-  }, 300)
+  isAnimating.value = true
+  slideOffset.value = direction === 'next' ? -100 : 100
+  
+  if (transitionTimer) clearTimeout(transitionTimer)
   
   transitionTimer = setTimeout(() => {
-    emit('update:currentIndex', nextIndex)
-    displayPhoto.value = props.photos[nextIndex]
+    emit('update:currentIndex', newIndex)
+    displayPhoto.value = props.photos[newIndex]
     slideOffset.value = 0
     isAnimating.value = false
     nextPhotoCache.value = null
+    prevPhotoCache.value = null
     transitionTimer = null
+    
+    preloadAdjacent()
   }, 200)
-  
-  preloadAdjacent()
+}
+
+function nextPhoto() {
+  startTransition('next')
 }
 
 function previousPhoto() {
-  if (isAnimating.value) return
-  if (props.currentIndex === 0) return
-  
-  const prevIndex = props.currentIndex - 1
-  prevPhotoCache.value = props.photos[prevIndex]
-  
-
-  isAnimating.value = true
-  isTouchBlocked.value = true
-  slideOffset.value = 100
-  
-  if (touchBlockTimer) clearTimeout(touchBlockTimer)
-  touchBlockTimer = setTimeout(() => {
-    isTouchBlocked.value = false
-    touchBlockTimer = null
-  }, 300)
-  
-  transitionTimer = setTimeout(() => {
-    emit('update:currentIndex', prevIndex)
-    displayPhoto.value = props.photos[prevIndex]
-    slideOffset.value = 0
-    isAnimating.value = false
-    prevPhotoCache.value = null
-    transitionTimer = null
-  }, 200)
-  
-  preloadAdjacent()
+  startTransition('prev')
 }
 
-
 function handleTouchStart(e: TouchEvent) {
- 
-  if (isAnimating.value || isTouchBlocked.value) {
+  if (isAnimating.value) {
     e.preventDefault()
     return
   }
   
   showHeader()
+  
   touchStartX.value = e.touches[0].clientX
+  touchStartY.value = e.touches[0].clientY
+  isSwiping.value = true
+  swipeDirection.value = null
+  
+  if (animationFrame) {
+    cancelAnimationFrame(animationFrame)
+    animationFrame = null
+  }
 }
 
 function handleTouchMove(e: TouchEvent) {
-  
-  if (isAnimating.value || isTouchBlocked.value) {
+  if (isAnimating.value || !isSwiping.value) {
     e.preventDefault()
     return
   }
   
-  const deltaX = e.touches[0].clientX - touchStartX.value
+  const currentX = e.touches[0].clientX
+  const currentY = e.touches[0].clientY
   
-  if (Math.abs(deltaX) > 10) {
+  const deltaX = currentX - touchStartX.value
+  const deltaY = currentY - touchStartY.value
+  
+  if (swipeDirection.value === null) {
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
+      e.preventDefault()
+      swipeDirection.value = deltaX > 0 ? 'right' : 'left'
+    } else if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 10) {
+      swipeDirection.value = 'vertical'
+      return
+    }
+  }
+  
+  if (swipeDirection.value === 'left' || swipeDirection.value === 'right') {
     e.preventDefault()
-    let offset = deltaX / 2
     
-    if (props.currentIndex === 0 && offset > 0) {
-      offset = offset / 3
+    if (animationFrame) {
+      cancelAnimationFrame(animationFrame)
     }
-    if (props.currentIndex === props.photos.length - 1 && offset < 0) {
-      offset = offset / 3
-    }
-    slideOffset.value = Math.max(Math.min(offset, 100), -100)
+    
+    animationFrame = requestAnimationFrame(() => {
+      let offset = deltaX / 2
+      
+      if (props.currentIndex === 0 && offset > 0) {
+        offset = offset / 3
+      }
+      if (props.currentIndex === props.photos.length - 1 && offset < 0) {
+        offset = offset / 3
+      }
+      
+      slideOffset.value = Math.max(Math.min(offset, 100), -100)
+      animationFrame = null
+    })
   }
 }
 
 function handleTouchEnd(e: TouchEvent) {
-
-  if (isAnimating.value || isTouchBlocked.value) {
-    e.preventDefault()
+  if (animationFrame) {
+    cancelAnimationFrame(animationFrame)
+    animationFrame = null
+  }
+  
+  if (!isSwiping.value) {
+    slideOffset.value = 0
+    return
+  }
+  
+  if (swipeDirection.value === 'vertical') {
+    isSwiping.value = false
+    swipeDirection.value = null
+    slideOffset.value = 0
+    return
+  }
+  
+  if (isAnimating.value) {
+    isSwiping.value = false
+    swipeDirection.value = null
+    slideOffset.value = 0
     return
   }
   
   const deltaX = e.changedTouches[0].clientX - touchStartX.value
   const absDelta = Math.abs(deltaX)
   
-  if (absDelta > 50) {
+  if (absDelta > 50 && swipeDirection.value !== 'vertical') {
     if (deltaX < 0 && props.currentIndex < props.photos.length - 1) {
-      nextPhoto()
+      startTransition('next')
     } else if (deltaX > 0 && props.currentIndex > 0) {
-      previousPhoto()
+      startTransition('prev')
     } else {
       slideOffset.value = 0
     }
   } else {
     slideOffset.value = 0
   }
+  
+  isSwiping.value = false
+  swipeDirection.value = null
 }
 
-
 function handleKeydown(e: KeyboardEvent) {
-  if (isAnimating.value || isTouchBlocked.value) return
+  if (isAnimating.value) return
+  
   switch (e.key) {
-    case 'Escape': emit('close'); break
-    case 'ArrowLeft': e.preventDefault(); previousPhoto(); break
-    case 'ArrowRight': e.preventDefault(); nextPhoto(); break
+    case 'Escape': 
+      emit('close')
+      break
+    case 'ArrowLeft': 
+      e.preventDefault()
+      previousPhoto()
+      break
+    case 'ArrowRight': 
+      e.preventDefault()
+      nextPhoto()
+      break
   }
 }
 
-watch(() => props.currentIndex, (newIndex) => {
+watch(() => props.currentIndex, (newIndex, oldIndex) => {
   if (shouldLoadMore.value) emit('loadMore')
   displayPhoto.value = props.photos[newIndex]
+  preloadCurrentImage()
   preloadAdjacent()
 })
-
 
 function checkMobile() { 
   isMobile.value = window.innerWidth <= 768 
@@ -253,7 +317,7 @@ function handleMouseMove() {
 }
 
 function handleImageClick(e: MouseEvent) {
-  if (isAnimating.value || isTouchBlocked.value) return
+  if (isAnimating.value) return
   
   if (!isMobile.value) {
     if (isHeaderVisible.value) {
@@ -271,6 +335,44 @@ function handleClickOutside(e: MouseEvent) {
     emit('close')
   }
 }
+
+function handleWheel(e: WheelEvent) {
+  if (isAnimating.value || isMobile.value) return
+  
+  if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+    e.preventDefault()
+    
+    if (e.deltaX > 0 && props.currentIndex < props.photos.length - 1) {
+      nextPhoto()
+    } else if (e.deltaX < 0 && props.currentIndex > 0) {
+      previousPhoto()
+    }
+  }
+}
+
+onMounted(() => {
+  displayPhoto.value = currentPhoto.value
+  checkMobile()
+  window.addEventListener('resize', checkMobile)
+  document.addEventListener('keydown', handleKeydown)
+  document.addEventListener('wheel', handleWheel, { passive: false })
+  document.body.classList.add('no-scroll')
+  showHeader()
+  preloadCurrentImage()
+  preloadAdjacent()
+  preloadAllImages()
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', checkMobile)
+  document.removeEventListener('keydown', handleKeydown)
+  document.removeEventListener('wheel', handleWheel)
+  document.body.classList.remove('no-scroll')
+  if (transitionTimer) clearTimeout(transitionTimer)
+  if (headerTimeout) clearTimeout(headerTimeout)
+  if (animationFrame) cancelAnimationFrame(animationFrame)
+  if (preloadTimer) clearTimeout(preloadTimer)
+})
 </script>
 
 <template>
@@ -278,8 +380,12 @@ function handleClickOutside(e: MouseEvent) {
     class="MediaViewer" 
     @mousemove="handleMouseMove"
     @mouseleave="isHeaderVisible = false"
-    :class="{ 'touch-blocked': isTouchBlocked }" 
   >
+    <!-- Индикатор загрузки -->
+    <div v-if="isLoading" class="loading-indicator">
+      <div class="spinner"></div>
+      <span>Загрузка изображения...</span>
+    </div>
 
     <div 
       class="media-viewer-header" 
@@ -305,11 +411,12 @@ function handleClickOutside(e: MouseEvent) {
     <div 
       class="MediaViewerSlides" 
       @touchstart="handleTouchStart"
-      @touchmove.prevent="handleTouchMove"
+      @touchmove="handleTouchMove"
       @touchend="handleTouchEnd"
       @click="handleClickOutside"
     >
       <div class="slider-container">
+        <!-- Предыдущее фото -->
         <div 
           v-if="prevPhotoCache || (props.currentIndex > 0 && !isAnimating)" 
           class="slide slide-prev"
@@ -324,9 +431,12 @@ function handleClickOutside(e: MouseEvent) {
               :alt="prevPhotoCache?.filename || props.photos[props.currentIndex - 1]?.filename"
               class="slide-image"
               draggable="false"
+              loading="lazy"
             />
           </div>
         </div>
+        
+        <!-- Текущее фото -->
         <div 
           class="slide slide-current"
           :style="{
@@ -342,11 +452,12 @@ function handleClickOutside(e: MouseEvent) {
               draggable="false"
               @click="handleImageClick"
               :style="{ transform: scale > 1 ? `scale(${scale})` : 'none' }"
-              fetchpriority="high"
+              :fetchpriority="'high'"
             />
           </div>
         </div>
 
+        <!-- Следующее фото -->
         <div 
           v-if="nextPhotoCache || (props.currentIndex < props.photos.length - 1 && !isAnimating)" 
           class="slide slide-next"
@@ -361,11 +472,13 @@ function handleClickOutside(e: MouseEvent) {
               :alt="nextPhotoCache?.filename || props.photos[props.currentIndex + 1]?.filename"
               class="slide-image"
               draggable="false"
+              loading="lazy"
             />
           </div>
         </div>
       </div>
 
+      <!-- Навигационные кнопки -->
       <button 
         v-if="!isMobile" 
         class="navigation prev" 
@@ -392,7 +505,6 @@ function handleClickOutside(e: MouseEvent) {
         </Icon>
       </button>
     </div>
-    
   </div>
 </template>
 
@@ -408,20 +520,40 @@ function handleClickOutside(e: MouseEvent) {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  touch-action: pan-y;
+  touch-action: pan-y pinch-zoom;
+  -webkit-overflow-scrolling: touch;
 }
 
-
-.touch-blocked {
-  cursor: wait;
+/* Индикатор загрузки */
+.loading-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 100;
+  color: white;
+  text-align: center;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 20px;
+  border-radius: 12px;
+  backdrop-filter: blur(4px);
 }
 
-
-@keyframes fadeInOut {
-  0% { opacity: 0; }
-  100% { opacity: 1; }
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s ease-in-out infinite;
+  margin: 0 auto 10px;
 }
 
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Хедер */
 .media-viewer-header {
   position: absolute;
   top: 0;
@@ -484,6 +616,7 @@ function handleClickOutside(e: MouseEvent) {
   transform: scale(1.05);
 }
 
+/* Слайды */
 .MediaViewerSlides {
   flex: 1;
   position: relative;
@@ -514,8 +647,18 @@ function handleClickOutside(e: MouseEvent) {
   will-change: transform;
   backface-visibility: hidden;
   transform: translateZ(0);
+  pointer-events: none;
 }
 
+.slide-current {
+  z-index: 10;
+  pointer-events: auto;
+}
+
+.slide-prev,
+.slide-next {
+  z-index: 5;
+}
 
 .slide-content {
   width: calc(100% - 60px);
@@ -524,7 +667,6 @@ function handleClickOutside(e: MouseEvent) {
   align-items: center;
   justify-content: center;
 }
-
 
 .mobile-slide {
   width: 100% !important;
@@ -537,21 +679,10 @@ function handleClickOutside(e: MouseEvent) {
   object-fit: contain;
   user-select: none;
   -webkit-user-drag: none;
+  -webkit-touch-callout: none;
 }
 
-
-
-
-
-.slide-current {
-  z-index: 10;
-}
-
-.slide-prev,
-.slide-next {
-  z-index: 5;
-}
-
+/* Навигация */
 .navigation {
   position: absolute;
   top: 50%;
@@ -605,6 +736,7 @@ function handleClickOutside(e: MouseEvent) {
   filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
 }
 
+/* Утилиты */
 .no-scroll {
   overflow: hidden !important;
   position: fixed;
@@ -612,7 +744,7 @@ function handleClickOutside(e: MouseEvent) {
   height: 100%;
 }
 
-
+/* Медиа-запросы */
 @media (max-width: 768px) {
   .media-viewer-header {
     height: 70px;
@@ -637,7 +769,6 @@ function handleClickOutside(e: MouseEvent) {
     height: 100% !important;
   }
 }
-
 
 @media (min-width: 1440px) {
   .slide-content {
