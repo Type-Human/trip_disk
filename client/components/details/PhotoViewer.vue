@@ -39,7 +39,7 @@
         :zoom="{
           maxRatio: 3,
           minRatio: 1,
-          toggle: true
+          toggle: false
         }"
         :keyboard="{
           enabled: true,
@@ -58,10 +58,11 @@
         @slideChange="onSlideChange"
         @reachEnd="onReachEnd"
         @swiper="onSwiperInit"
+        @click="handleImageClick"
         class="swiper-container"
       >
         <swiper-slide v-for="(photo, index) in props.photos" :key="photo.id">
-          <div class="slide-wrapper" @click="handleImageClick">
+          <div class="slide-wrapper">
             <div class="swiper-zoom-container">
               <img 
                 :data-src="photo.url"
@@ -136,6 +137,7 @@ const isHeaderVisible = ref(false)
 const scale = ref(1)
 const swiperInstance = ref<SwiperType | null>(null)
 const loadedImages = ref<Set<string>>(new Set()) 
+const lastTapTime = ref(0)
 
 let headerTimeout: ReturnType<typeof setTimeout> | null = null
 
@@ -241,15 +243,34 @@ function showHeader() {
 }
 
 function handleMouseMove() { 
-  showHeader() 
+  if (!isMobile.value) {
+    showHeader()
+  }
 }
 
-function handleImageClick() {
-  if (isHeaderVisible.value) {
-    isHeaderVisible.value = false
-    if (headerTimeout) clearTimeout(headerTimeout)
+function handleImageClick(e: MouseEvent) {
+  const now = Date.now()
+  
+  if (isMobile.value) {
+    if (now - lastTapTime.value < 300) {
+      lastTapTime.value = 0
+      return
+    }
+    lastTapTime.value = now
+    
+    if (isHeaderVisible.value) {
+      isHeaderVisible.value = false
+      if (headerTimeout) clearTimeout(headerTimeout)
+    } else {
+      showHeader()
+    }
   } else {
-    showHeader()
+    if (isHeaderVisible.value) {
+      isHeaderVisible.value = false
+      if (headerTimeout) clearTimeout(headerTimeout)
+    } else {
+      showHeader()
+    }
   }
 }
 </script>
