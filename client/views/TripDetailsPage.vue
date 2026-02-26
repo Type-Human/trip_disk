@@ -617,38 +617,53 @@ onMounted(() => {
   display: flex;
   gap: 6px;
   overflow-x: auto;
+  overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-
+  white-space: nowrap;
+  flex-wrap: nowrap;
+  width: 100%;
+  min-width: 0;
+  padding-bottom: 4px;
+  
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+  
   &::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+    background: transparent;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+  }
+  
+  &::-webkit-scrollbar-button {
     display: none;
     width: 0;
     height: 0;
-    background: transparent;
   }
-
+  
+  &::-webkit-scrollbar-button:start,
+  &::-webkit-scrollbar-button:end,
+  &::-webkit-scrollbar-button:horizontal,
+  &::-webkit-scrollbar-button:vertical {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+  
   @media (min-width: 640px) {
     gap: 8px;
-
+    
     &::-webkit-scrollbar {
-      display: block;
-      height: 8px;
-    }
-
-    &::-webkit-scrollbar-track {
-      background: transparent;
-    }
-
-    &::-webkit-scrollbar-thumb {
-      background-color: #ccc;
-      border-radius: 3px;
-    }
-
-    &.hide-on-desktop {
-      &::-webkit-scrollbar {
-        display: none;
-      }
+      width: 5px;
+      height: 5px;
     }
   }
 }
@@ -661,7 +676,7 @@ onMounted(() => {
   border-radius: 8px 8px 0 0;
   cursor: pointer;
   white-space: nowrap;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: space-between;
   gap: 6px;
@@ -669,6 +684,8 @@ onMounted(() => {
   min-width: 110px;
   font-size: 13px;
   flex-shrink: 0;
+  color: black;
+  opacity: 0.5;
 
   @media (min-width: 375px) {
     padding: 10px 16px;
@@ -691,6 +708,7 @@ onMounted(() => {
   &.active {
     background: #6366f1;
     color: white;
+    opacity: 1;
 
     .folder-tab-delete {
       color: white;

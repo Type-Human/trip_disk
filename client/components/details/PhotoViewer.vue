@@ -28,7 +28,7 @@
 
     <div class="MediaViewerSlides">
       <swiper
-        :modules="[Navigation, Pagination, Zoom, Keyboard, A11y]"
+        :modules="[Navigation, Pagination, Zoom, Keyboard, A11y, Virtual]"
         :slides-per-view="1"
         :initial-slide="props.currentIndex"
         :space-between="20"
@@ -46,6 +46,7 @@
           enabled: !isMobile,
           onlyInViewport: true
         }"
+        :virtual="true"
         :touch-ratio="1.5"
         :resistance-ratio="0.3"
         :speed="300"
@@ -59,7 +60,7 @@
         @click="handleImageClick"
         class="swiper-container"
       >
-        <swiper-slide v-for="(photo, index) in props.photos" :key="photo.id">
+        <swiper-slide v-for="(photo, index) in props.photos" :key="photo.id" :virtual-index="index">
           <div class="slide-wrapper" :class="{ 'mobile-slide': isMobile }">
             <div class="swiper-zoom-container">
               <img 
@@ -67,7 +68,8 @@
                 :alt="photo.filename"
                 class="slide-image"
                 draggable="false"
-                loading="lazy"
+                :loading="index === props.currentIndex ? 'eager' : 'lazy'"
+                :fetchpriority="index === props.currentIndex ? 'high' : 'low'"
               />
             </div>
           </div>
@@ -107,7 +109,7 @@ import { computed, onMounted, ref, onUnmounted } from 'vue'
 import Icon from '../ui/Icon.vue';
 import { tripApi } from '@/api';
 import { Swiper, SwiperSlide } from 'swiper/vue'
-import { Navigation, Pagination, Zoom, Keyboard, A11y } from 'swiper/modules'
+import { Navigation, Pagination, Zoom, Keyboard, A11y, Virtual } from 'swiper/modules'
 import type { Swiper as SwiperType } from 'swiper'
 import 'swiper/css'
 import 'swiper/css/navigation'
@@ -147,6 +149,9 @@ onUnmounted(() => {
   document.removeEventListener('keydown', handleKeydown)
   document.body.classList.remove('no-scroll')
   if (headerTimeout) clearTimeout(headerTimeout)
+  if (swiperInstance.value) {
+    swiperInstance.value.destroy(true, true)
+  }
 })
 
 function checkMobile() { 
