@@ -1,17 +1,35 @@
 import { createRouter, createWebHistory } from "vue-router";
-import HomeView from "../views/HomeView.vue";
+import HomeViewPage from "@/views/HomeViewPage.vue";
 import TripDetailsPage from "../views/TripDetailsPage.vue";
+import LoginPage from "../views/LoginPage.vue";
+import RegisterPage from "../views/RegisterPage.vue";
+
+import { useAuthStore } from "../stores/auth";
 
 const routes = [
   {
     path: "/",
     name: "home",
-    component: HomeView,
+    component: HomeViewPage,
   },
+  {
+    path: "/login",
+    name: "login",
+    component: LoginPage,
+    meta: { guestOnly: true }, 
+  },
+  {
+    path: "/register",
+    name: "register",
+    component: RegisterPage,
+    meta: { guestOnly: true },
+  },
+
   {
     path: "/trips/:id",
     name: "trip-details",
     component: TripDetailsPage,
+    meta: { requiresAuth: true },
   },
 ];
 
@@ -19,5 +37,20 @@ const router = createRouter({
   history: createWebHistory(),
   routes,
 });
+
+router.beforeEach(async (to, from, next) => {
+  const authStore = useAuthStore()
+  
+  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
+    next('/login')
+  }
+
+  else if (to.meta.guestOnly && authStore.isAuthenticated) {
+    next('/')
+  }
+  else {
+    next()
+  }
+})
 
 export default router;

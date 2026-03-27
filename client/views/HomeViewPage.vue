@@ -102,9 +102,6 @@ onMounted(() => {
       </div>
       <h3>У вас пока нет поездок</h3>
       <p>Создайте свою первую поездку!</p>
-      <button @click="showCreateModal = true">
-        Создать поездку
-      </button>
     </div>
 
     <div v-else :class="viewType === 'grid' ? 'trips-grid' : 'trips-list'">
@@ -249,6 +246,7 @@ onMounted(() => {
 @media (min-width: 640px) {
   .home {
     padding: 24px;
+    padding-top: 48px;
   }
 
   .header {

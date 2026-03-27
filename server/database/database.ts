@@ -62,9 +62,37 @@ export class DatabaseService {
       )
     `)
 
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        salt TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `)
+
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS sessions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        token TEXT UNIQUE NOT NULL,
+        expires_at DATETIME NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `)
+
+
     this.db.run(`CREATE INDEX IF NOT EXISTS idx_photos_tripId ON photos(tripId)`)
     this.db.run(`CREATE INDEX IF NOT EXISTS idx_photos_folderId ON photos(folderId)`)
     this.db.run(`CREATE INDEX IF NOT EXISTS idx_folders_tripId ON folders(tripId)`)
+    this.db.run(`CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token)`)
+    this.db.run(`CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id)`)
+    this.db.run(`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)`)
+    this.db.run(`CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)`)
   }
 
   getDatabase(): any {
@@ -73,5 +101,22 @@ export class DatabaseService {
 
   close(): void {
     this.db.close()
+  }
+}
+
+let dbService: DatabaseService | null = null
+
+export function getDatabase(): DatabaseService {
+  if (!dbService) {
+    const dbPath = process.env.DB_PATH
+    dbService = new DatabaseService(dbPath)
+  }
+  return dbService
+}
+
+export function closeDatabase(): void {
+  if (dbService) {
+    dbService.close()
+    dbService = null
   }
 }

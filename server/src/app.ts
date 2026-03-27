@@ -6,6 +6,8 @@ import { FolderService } from "../services/folderService";
 import { PhotoService } from "../services/photoService";
 import { TripService } from "../services/tripService";
 import { initializeStorage } from "../storage";
+import auth from "../routes/auth";
+import { authMiddleware } from "../middleware/authMiddleware";
 
 export async function createApp(): Promise<Hono> {
   const app = new Hono();
@@ -20,6 +22,7 @@ export async function createApp(): Promise<Hono> {
           "http://localhost:80",
           "http://localhost:5174",
           "http://localhost:3000",
+          "http://localhost:5173",
         ];
         if (origin && allowedOrigins.includes(origin)) {
           return origin;
@@ -28,6 +31,7 @@ export async function createApp(): Promise<Hono> {
       },
       allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
       allowHeaders: ["Content-Type", "Authorization"],
+      credentials: true,
     }),
   );
 
@@ -49,8 +53,14 @@ export async function createApp(): Promise<Hono> {
 
   const apiRoutes = createRoutes(tripService, photoService, folderService);
   
-
+  app.route('/auth', auth);
+  
   app.route('/', apiRoutes);
+
+  app.get('/protected', authMiddleware, async (c) => {
+    const user = c.get('user');
+    return c.json({ message: 'Это защищенный маршрут', user });
+  });
 
   app.notFound((c) => {
     return c.json({ error: "Not Found" }, 404);

@@ -1,5 +1,10 @@
 const API_URL = (import.meta as any).env?.VITE_API_URL || '/api'
 
+
+function getAuthToken(): string | null {
+  return localStorage.getItem('auth_token')
+}
+
 async function request<T>(
   method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH',
   url: string,
@@ -10,6 +15,12 @@ async function request<T>(
     const requestConfig = config || {}
     const headers: Record<string, string> = {
       ...(requestConfig.headers as Record<string, string> || {}),
+    }
+
+
+    const token = getAuthToken()
+    if (token && !headers['Authorization']) {
+      headers['Authorization'] = `Bearer ${token}`
     }
 
     let body: any = null
@@ -28,6 +39,12 @@ async function request<T>(
       body,
       ...requestConfig,
     })
+
+    if (response.status === 401 && token) {
+      localStorage.removeItem('auth_token')
+      localStorage.removeItem('user')
+      window.dispatchEvent(new Event('auth:unauthorized'))
+    }
 
     if (!response.ok) {
       let errorMessage = 'Ошибка сервера'
