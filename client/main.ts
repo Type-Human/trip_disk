@@ -12,7 +12,12 @@ const pinia = createPinia()
 app.use(pinia)
 app.use(router)
 
-const authStore = useAuthStore()
-await authStore.init()
 
-app.mount('#app')
+const initApp = () => {
+  const authStore = useAuthStore()
+  authStore.init().finally(() => {
+    app.mount('#app')
+  })
+}
+
+initApp()
