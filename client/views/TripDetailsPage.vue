@@ -505,7 +505,13 @@ onMounted(() => {
   max-width: $container-width;
   height: 100vh;
   margin: 0 auto;
-  padding: 16px;
+  padding-top: 48px !important;
+  padding: 12px;
+
+
+  @media (max-width:768px) {
+    padding-top: 16px !important;
+  }
 
 
 }

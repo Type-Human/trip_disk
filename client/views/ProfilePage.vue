@@ -228,7 +228,7 @@ const formatDate = (date?: string) => {
 .profile-page {
   min-height: 100vh;
   padding-top: 48px;
-  padding: 24px;
+  padding: 48px;
 }
 
 .container-xl {
@@ -569,7 +569,7 @@ const formatDate = (date?: string) => {
 
 @media (max-width: 768px) {
   .profile-page {
-    padding: 1rem;
+    padding: 12px;
   }
 
   .Layout {

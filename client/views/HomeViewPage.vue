@@ -135,6 +135,7 @@ onMounted(() => {
   max-width: 1200px;
   height: 100vh;
   margin: 0 auto;
+  padding-top: 16px !important;
   padding: 12px;
 }
 
@@ -247,7 +248,7 @@ onMounted(() => {
 @media (min-width: 640px) {
   .home {
     padding: 24px;
-    padding-top: 48px;
+    padding-top: 48px !important;
   }
 
   .header {
