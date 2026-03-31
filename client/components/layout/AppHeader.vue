@@ -48,7 +48,7 @@ const goToLogin = () => {
           </button>
           
           <div v-else class="user-menu">
-            <a  class="profile-link">
+            <router-link  to="/profile" class="profile-link">
               <Icon 
                 :size="32" 
                 color="#6366f1"
@@ -61,7 +61,7 @@ const goToLogin = () => {
                 <path d="M32,0C4.57,0-9.84,32.21,7.61,52.7a32,32,0,0,0,48.77,0C74,31.93,59.16,0,32,0Zm0,4C53.84,4,67.24,28,55.87,46.58A25,25,0,0,0,42.13,31.13l.4-.5A13,13,0,0,0,32,10C20.88,10,15.18,23,21.86,31.13A25,25,0,0,0,8.13,46.58C-3.24,28,10.15,4,32,4ZM11.25,50.77a20.94,20.94,0,0,1,14-16.66,13,13,0,0,0,13.46,0,20.92,20.92,0,0,1,14,16.66A28,28,0,0,1,11.25,50.77ZM23,23a9,9,0,1,1,9,9A9,9,0,0,1,23,23Z" fill="#fff" stroke="none"/>
               </Icon>
               <span class="username">{{ user?.username || user?.email?.split('@')[0] }}</span>
-            </a>
+            </router-link>
             <button @click="logout" class="logout-btn" title="Выйти">
               <Icon :size="18" color="#666" stroke-color="#666">
                 <path d="M9 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H9" />
@@ -172,6 +172,7 @@ const goToLogin = () => {
   border: none;
   cursor: pointer;
   padding: 6px 12px;
+  padding-right: 0px;
   border-radius: 8px;
   color: #666;
   font-size: 14px;

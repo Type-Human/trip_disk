@@ -3,6 +3,7 @@ import HomeViewPage from "@/views/HomeViewPage.vue";
 import TripDetailsPage from "../views/TripDetailsPage.vue";
 import LoginPage from "../views/LoginPage.vue";
 import RegisterPage from "../views/RegisterPage.vue";
+import ProfilePage from "@/views/ProfilePage.vue";
 
 import { useAuthStore } from "../stores/auth";
 
@@ -30,6 +31,11 @@ const routes = [
     name: "trip-details",
     component: TripDetailsPage,
     meta: { requiresAuth: true },
+  },
+   {
+    path: "/profile",
+    name: "profile",
+    component: ProfilePage,
   },
 ];
 

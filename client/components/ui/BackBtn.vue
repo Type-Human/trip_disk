@@ -5,7 +5,7 @@ const router = useRouter()
 </script>
 
 <template>
-  <button class="back-btn" @click="router.back()">
+  <button class="back-btn" @click="router.push('/')">
     <img src="/img/svg/arrow-left.svg" alt="" style="width: 15px; height: 15px;">
   </button>
 </template>

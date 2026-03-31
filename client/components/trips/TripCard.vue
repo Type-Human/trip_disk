@@ -98,9 +98,7 @@ onMounted(() => {
             ✈️
           </div>
         </div>
-        <div class="date-badge">
-          {{ formatDate(trip.date) }}
-        </div>
+        
       </div>
       <div class="trip-content">
         <div class="content-header">
@@ -123,6 +121,9 @@ onMounted(() => {
         </div>
       </div>
     </article>
+    <div class="date-badge">
+          {{ formatDate(trip.date) }}
+        </div>
     <button type="button" class="delete-badge" title="Удалить путешествие">
       <Icon size="16" stroke="#ef4444">
         <path data-v-943d8c11="" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
@@ -220,6 +221,7 @@ onMounted(() => {
   font-weight: $font-weight-medium;
   color: $color-gray-darker;
   box-shadow: $shadow-sm;
+  
 }
 
 .delete-badge {

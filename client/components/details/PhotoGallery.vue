@@ -437,10 +437,6 @@ watch(
     z-index: 1;
   }
 
-  &.selected {
-    border: 2px solid #0066cc;
-    box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.2);
-  }
 }
 
 @keyframes fadeIn {
@@ -576,7 +572,7 @@ watch(
   background: white;
   padding: 12px;
   margin-bottom: 16px;
-  border-radius: 12px;
+
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   animation: slideDown 0.2s ease-out;
   border: 1px solid #e0e0e0;

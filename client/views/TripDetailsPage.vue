@@ -507,9 +507,7 @@ onMounted(() => {
   margin: 0 auto;
   padding: 16px;
 
-  @media (min-width: 640px) {
-    padding: 24px;
-  }
+
 }
 
 .header {
@@ -602,8 +600,8 @@ onMounted(() => {
   }
 
   @media (min-width: 640px) {
-    width: 44px;
-    height: 44px;
+    width: 42px;
+    height: 42px;
   }
 }
 
