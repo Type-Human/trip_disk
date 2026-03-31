@@ -123,7 +123,7 @@ function handleClickOutside(event: MouseEvent) {
     </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .folder-select {
     margin: 0 24px 16px 24px;
 }
@@ -155,11 +155,11 @@ function handleClickOutside(event: MouseEvent) {
 }
 
 .select-trigger:hover:not(.disabled) {
-    border-color: #6366f1;
+    border-color: $color-primary;
 }
 
 .custom-select.open .select-trigger {
-    border-color: #6366f1;
+    border-color: $color-primary;
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
 }

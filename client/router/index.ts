@@ -36,6 +36,7 @@ const routes = [
     path: "/profile",
     name: "profile",
     component: ProfilePage,
+     meta: { requiresAuth: false },
   },
 ];
 

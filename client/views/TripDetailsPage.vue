@@ -502,7 +502,7 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .trip-details {
-  max-width: 1400px;
+  max-width: $container-width;
   height: 100vh;
   margin: 0 auto;
   padding: 16px;
@@ -704,7 +704,7 @@ onMounted(() => {
   }
 
   &.active {
-    background: #6366f1;
+    background: $color-primary;
     color: white;
     opacity: 1;
 
@@ -777,7 +777,7 @@ onMounted(() => {
 }
 
 .btn-primary {
-  background: #6366f1;
+  background: $color-primary;
   color: white;
   border: none;
 

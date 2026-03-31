@@ -95,16 +95,17 @@ onMounted(() => {
         </div>
         <div v-else class="trip-placeholder">
           <div class="placeholder-icon">
-            ✈️
+            <Icon size="32" stroke-color="currentColor" stroke-width="1.5">
+                      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
+                      <circle cx="12" cy="9" r="3" />
+                    </Icon>
           </div>
         </div>
         
       </div>
       <div class="trip-content">
         <div class="content-header">
-          <h3 class="trip-title">
-            {{ trip.title }}
-          </h3>
+        
           <p class="trip-description">
             {{ trip.description }}
           </p>

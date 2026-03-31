@@ -88,7 +88,7 @@ function handleKeydown(e: KeyboardEvent) {
   box-sizing: border-box;
 
   &:focus {
-    border-color: #6366f1;
+    border-color: $color-primary;
     outline: none;
     box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
   }

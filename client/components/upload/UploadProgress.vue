@@ -94,7 +94,7 @@ watch(() => props.results, (results) => {
   </Teleport>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .upload-progress-overlay {
   position: fixed;
   top: 0;
@@ -146,7 +146,7 @@ h3 {
 
 .progress-fill {
   height: 100%;
-  background: #6366f1;
+  background: $color-primary;
   transition: width 0.2s ease;
   border-radius: 3px;
 }
@@ -154,7 +154,7 @@ h3 {
 .progress-text {
   font-size: 15px;
   font-weight: 600;
-  color: #6366f1;
+  color: $color-primary;
   min-width: 48px;
   text-align: right;
 }

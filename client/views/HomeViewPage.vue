@@ -161,7 +161,7 @@ onMounted(() => {
 
 .create-btn {
   padding: 12px 16px;
-  background: #6366f1;
+  background: $color-primary;
   color: white;
   border: none;
   border-radius: 8px;
@@ -210,7 +210,7 @@ onMounted(() => {
 
 .empty-state button {
   padding: 12px 24px;
-  background: #6366f1;
+  background: $color-primary;
   color: white;
   border: none;
   border-radius: 8px;

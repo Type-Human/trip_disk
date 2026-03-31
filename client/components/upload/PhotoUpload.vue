@@ -180,7 +180,7 @@ document.addEventListener('keydown', handleKeydown)
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -268,7 +268,7 @@ document.addEventListener('keydown', handleKeydown)
 }
 
 .drop-zone.dragging {
-  border-color: #6366f1;
+  border-color: $color-primary;
   background: rgba(99, 102, 241, 0.05);
 }
 
@@ -281,7 +281,7 @@ document.addEventListener('keydown', handleKeydown)
 .browse-btn {
   display: inline-block;
   padding: 12px 28px;
-  background: #6366f1;
+  background: $color-primary;
   color: white;
   border-radius: 8px;
   cursor: pointer;
@@ -451,7 +451,7 @@ document.addEventListener('keydown', handleKeydown)
 }
 
 .btn-primary {
-  background: #6366f1;
+  background: $color-primary;
   color: white;
 }
 

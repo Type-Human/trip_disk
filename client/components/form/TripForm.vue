@@ -198,7 +198,7 @@ function handleKeydown(e: KeyboardEvent) {
 
   &:focus {
     outline: none;
-    border-color: #6366f1;
+    border-color: $color-primary;
     box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
   }
 
@@ -259,13 +259,13 @@ input[type="date"] {
   text-align: center;
 
   &:hover {
-    border-color: #6366f1;
+    border-color: $color-primary;
     background: #f0f4ff;
   }
 }
 
 .upload-icon {
-  color: #6366f1;
+  color: $color-primary;
   margin-bottom: 12px;
   transition: transform 0.3s ease;
 
@@ -358,7 +358,7 @@ input[type="date"] {
   }
 
   .change-preview {
-    color: #6366f1;
+    color: $color-primary;
 
     &:hover {
       background: #eef2ff;
@@ -391,7 +391,7 @@ input[type="date"] {
 }
 
 .btn-primary {
-  background-color: #6366f1;
+  background-color: $color-primary;
   color: white;
   border: none;
 
