@@ -1,9 +1,9 @@
-
 <script setup lang="ts">
 import type { Folder, Photo, Trip } from "../types/trip";
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import { tripApi } from "@/api";
+import { useAuthStore } from '@/stores/auth'
 import PhotoGallery from "../components/details/PhotoGallery.vue";
 import PhotoViewer from "../components/details/PhotoViewer.vue";
 import AddFolderModal from "../components/modals/AddFolderModal.vue";
@@ -15,6 +15,7 @@ import UploadProgress from "../components/upload/UploadProgress.vue";
 
 const route = useRoute();
 const tripId = route.params.id as string;
+const authStore = useAuthStore();
 
 const trip = ref<Trip | null>(null);
 const photos = ref<Photo[]>([]);
@@ -43,7 +44,6 @@ const totalPhotos = ref(0);
 const hasMore = ref(false);
 const isLoadingMore = ref(false);
 
-
 const uploadProgress = ref(0);
 const uploadResults = ref<Array<{ name: string; success: boolean; error?: string }>>([]);
 const abortController = ref<AbortController | null>(null);
@@ -51,6 +51,12 @@ const totalFiles = ref(0);
 const completedFiles = ref(0);
 
 const selectionMode = ref(false);
+
+
+const isOwner = computed(() => {
+  if (!trip.value || !authStore.user) return false
+  return trip.value.userId === authStore.user.id
+})
 
 const filteredPhotos = computed(() => {
   if (activeFolder.value === "all") {
@@ -79,7 +85,7 @@ async function fetchTripData() {
       tripApi.getFoldersByTripId(tripId),
     ]);
 
-    trip.value = tripData;
+    trip.value = tripData;    
     folders.value = [
       {
         id: "all",
@@ -163,7 +169,6 @@ watch(
   },
 );
 
-
 async function handlePhotoUpload(files: File[], folderId?: string) {
   if (files.length === 0) return;
   
@@ -174,15 +179,10 @@ async function handlePhotoUpload(files: File[], folderId?: string) {
   completedFiles.value = 0;
   abortController.value = new AbortController();
   
-  let successCount = 0;
-  let failedCount = 0;
-  
-
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
     
     try {
-
       const uploadedPhotos = await tripApi.uploadPhotos(
         tripId,
         [file],
@@ -192,14 +192,12 @@ async function handlePhotoUpload(files: File[], folderId?: string) {
       photos.value = [...photos.value, ...uploadedPhotos];
       totalPhotos.value += uploadedPhotos.length;
       
-      successCount++;
       uploadResults.value.push({ 
         name: file.name, 
         success: true 
       });
     } catch (error) {
       console.error(`Ошибка загрузки ${file.name}:`, error);
-      failedCount++;
       uploadResults.value.push({ 
         name: file.name, 
         success: false,
@@ -214,8 +212,6 @@ async function handlePhotoUpload(files: File[], folderId?: string) {
       await new Promise(resolve => setTimeout(resolve, 50));
     }
   }
-  
-
 
   isUploading.value = false;
   showUpload.value = false;
@@ -357,7 +353,7 @@ onMounted(() => {
         </div>
       </div>
       <button
-        v-if="!selectionMode && filteredPhotos?.length > 0"
+        v-if="isOwner && !selectionMode && filteredPhotos?.length > 0"
         class="manage-photos-btn"
         :title="selectionMode ? 'Выйти из режима выбора' : 'Управление фотографиями'"
         @click="startSelection"
@@ -369,14 +365,16 @@ onMounted(() => {
         </Icon>
       </button>
       <div class="desktop-actions">
-        <button class="btn-secondary" @click="showCreateFolder = true">
-          + Папка
-        </button>
-        <button class="btn-primary" @click="showUpload = true">
-          Добавить фото
-        </button>
+        <template v-if="isOwner">
+          <button class="btn-secondary" @click="showCreateFolder = true">
+            + Папка
+          </button>
+          <button class="btn-primary" @click="showUpload = true">
+            Добавить фото
+          </button>
+        </template>
       </div>
-      <div class="mobile-menu">
+      <div v-if="isOwner" class="mobile-menu">
         <button
           class="mobile-menu-button"
           @click="showMobileMenu = !showMobileMenu"
@@ -385,7 +383,7 @@ onMounted(() => {
         </button>
 
         <div
-          v-if="showMobileMenu"
+          v-if="showMobileMenu && isOwner"
           class="mobile-menu-overlay"
           @click="showMobileMenu = false"
         >
@@ -429,7 +427,7 @@ onMounted(() => {
             <span class="folder-name">{{ folder.name }}</span>
 
             <button
-              v-if="folder.id !== 'all'"
+              v-if="isOwner && folder.id !== 'all'"
               type="button"
               class="folder-tab-delete"
               title="Удалить папку"
@@ -450,6 +448,7 @@ onMounted(() => {
       :is-loading-more="isLoadingMore"
       :has-more="hasMore"
       :total-photos="totalPhotos"
+      :is-owner="isOwner"
       @upload="showUpload = true"
       @photo-click="openPhotoViewer"
       @delete-photos="handleDeletePhotos"
@@ -458,7 +457,7 @@ onMounted(() => {
     />
 
     <PhotoUpload
-      v-if="showUpload"
+      v-if="showUpload && isOwner"
       :folders="realFolders"
       :selected-folder-id="activeFolder !== 'all' ? activeFolder : null"
       :is-uploading="isUploading"
@@ -475,7 +474,7 @@ onMounted(() => {
     />
 
     <AddFolderModal
-      v-if="showCreateFolder"
+      v-if="showCreateFolder && isOwner"
       @close="showCreateFolder = false"
       @create="handleCreateFolder"
     />
@@ -486,13 +485,14 @@ onMounted(() => {
       :current-index="currentPhotoIndex"
       :show="showPhotoViewer"
       :folder-id="activeFolder !== 'all' ? activeFolder : undefined"
+      :is-owner="isOwner"
       @close="showPhotoViewer = false"
       @update:current-index="currentPhotoIndex = $event"
       @load-more="loadMorePhotos"
     />
 
     <DeleteModal
-      v-if="folderIdDelete && showDeleteModal"
+      v-if="folderIdDelete && showDeleteModal && isOwner"
       @confirm="confirmDeleteModal"
       :loading="isDeleting"
       @close="closeDeleteModal()"
@@ -508,12 +508,9 @@ onMounted(() => {
   padding-top: 48px !important;
   padding: 12px;
 
-
   @media (max-width:768px) {
     padding-top: 16px !important;
   }
-
-
 }
 
 .header {

@@ -32,7 +32,7 @@ export class DatabaseService {
         description TEXT,
         date TEXT NOT NULL,
         location TEXT,
-        coverImage TEXT,
+        coverImage TEXT,x
         createdAt TEXT NOT NULL,
         updatedAt TEXT NOT NULL
       )

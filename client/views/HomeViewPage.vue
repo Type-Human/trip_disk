@@ -1,89 +1,123 @@
 <script setup lang="ts">
-import type { CreateTripDto, Trip } from '../types/trip'
-import { onMounted, ref } from 'vue'
-import { tripApi } from '@/api'
-import CreateTripModal from '../components/modals/CreateTripModal.vue'
-import DeleteModal from '../components/modals/DeleteModal.vue'
-import TripCard from '../components/trips/TripCard.vue'
-import ViewSwitcher from '../components/ui/ViewSwitcher.vue'
+import type { CreateTripDto, Trip } from "../types/trip";
+import { onMounted, ref } from "vue";
+import { tripApi } from "@/api";
+import CreateTripModal from "../components/modals/CreateTripModal.vue";
+import DeleteModal from "../components/modals/DeleteModal.vue";
+import TripCard from "../components/trips/TripCard.vue";
+import ViewSwitcher from "../components/ui/ViewSwitcher.vue";
+import AvailabilitySwitch from "@/components/ui/AvailabilitySwitch.vue";
 
-const trips = ref<Trip[]>([])
-const showCreateModal = ref(false)
-const showDeleteModal = ref(false)
-const tripToDelete = ref<Trip | null>(null)
-const isLoading = ref(false)
-const isCreating = ref(false)
-const isDeleting = ref(false)
-const viewType = ref<'grid' | 'list'>('list')
+const trips = ref<Trip[]>([]);
+const showCreateModal = ref(false);
+const showDeleteModal = ref(false);
+const tripToDelete = ref<Trip | null>(null);
+const isLoading = ref(false);
+const isSwitching = ref(false);
+const isCreating = ref(false);
+const isDeleting = ref(false);
+const viewType = ref<"grid" | "list">("list");
+const availabilityType = ref<"my" | "public">("my");
 
-async function fetchTrips() {
+async function fetchTrips(showLoader: boolean = true) {
   try {
-    isLoading.value = true
-    trips.value = await tripApi.getAll()
-  }
-  catch (error) {
-    console.error('Ошибка загрузки поездок:', error)
-  }
-  finally {
-    isLoading.value = false
+    if (showLoader) {
+      isLoading.value = true;
+    } else {
+      isSwitching.value = true;
+    }
+    
+    if (availabilityType.value === "my") {
+      trips.value = await tripApi.getTripsUser();
+    } else {
+      trips.value = await tripApi.getAll();
+    }
+  } catch (error: any) {
+
+    trips.value = [];
+  } finally {
+    isLoading.value = false;
+    isSwitching.value = false;
   }
 }
 
 async function handleCreateTrip(data: CreateTripDto) {
   try {
-    isCreating.value = true
-    const newTrip = await tripApi.create(data)
-    trips.value.push(newTrip)
-    showCreateModal.value = false
-  }
-  catch (error) {
-    console.error('Ошибка создания поездки:', error)
-  }
-  finally {
-    isCreating.value = false
+    isCreating.value = true;
+    const newTrip = await tripApi.create(data);
+    if (availabilityType.value === "my" && !newTrip.isPublic) {
+      trips.value.push(newTrip);
+    } else if (availabilityType.value === "public" && newTrip.isPublic) {
+      trips.value.push(newTrip);
+    }
+    showCreateModal.value = false;
+  } catch (error) {
+    console.error("Ошибка создания поездки:", error);
+  } finally {
+    isCreating.value = false;
   }
 }
 
 function openDeleteModal(trip: Trip) {
-  tripToDelete.value = trip
-  showDeleteModal.value = true
+  tripToDelete.value = trip;
+  showDeleteModal.value = true;
 }
 
 async function confirmDeleteTrip() {
-  if (!tripToDelete.value)
-    return
+  if (!tripToDelete.value) return;
 
   try {
-    isDeleting.value = true
-    await tripApi.delete(tripToDelete.value.id)
-    trips.value = trips.value.filter(t => t.id !== tripToDelete.value!.id)
-    showDeleteModal.value = false
-    tripToDelete.value = null
-  }
-  catch (error) {
-    console.error('Ошибка удаления поездки:', error)
-  }
-  finally {
-    isDeleting.value = false
+    isDeleting.value = true;
+    await tripApi.delete(tripToDelete.value.id);
+    trips.value = trips.value.filter((t) => t.id !== tripToDelete.value!.id);
+    showDeleteModal.value = false;
+    tripToDelete.value = null;
+  } catch (error) {
+    console.error("Ошибка удаления поездки:", error);
+  } finally {
+    isDeleting.value = false;
   }
 }
 
 function closeDeleteModal() {
   if (!isDeleting.value) {
-    showDeleteModal.value = false
-    tripToDelete.value = null
+    showDeleteModal.value = false;
+    tripToDelete.value = null;
   }
 }
 
+function handleAvailabilityChange(type: "my" | "public") {
+  if (availabilityType.value === type) return;
+  availabilityType.value = type;
+  fetchTrips(false);
+}
+
 onMounted(() => {
-  fetchTrips()
-})
+  fetchTrips(true);
+});
 </script>
 
 <template>
   <div class="home">
+    <div class="title-section">
+      <h1 class="title">
+        {{ availabilityType === "my" ? "Мои поездки" : "Общие поездки" }}
+      </h1>
+      <div class="mobile-availability">
+        <AvailabilitySwitch
+          :model-value="availabilityType"
+          @update:type="handleAvailabilityChange"
+        />
+      </div>
+    </div>
+
     <div class="header">
-      <h1>Мои поездки</h1>
+      <div class="desktop-availability">
+        <AvailabilitySwitch
+          :model-value="availabilityType"
+          @update:type="handleAvailabilityChange"
+        />
+      </div>
       <div class="header-actions">
         <ViewSwitcher v-model="viewType" @switch-view="viewType = $event" />
         <button class="create-btn" @click="showCreateModal = true">
@@ -92,16 +126,30 @@ onMounted(() => {
       </div>
     </div>
 
-    <div v-if="isLoading" class="loading">
-   
+    <div v-if="isSwitching" class="switching-loader">
+      <div class="spinner"></div>
+    </div>
+
+    <div v-else-if="isLoading" class="loading">
+      <div class="spinner"></div>
     </div>
 
     <div v-else-if="trips.length === 0" class="empty-state">
-      <div class="empty-icon">
-        ✈️
-      </div>
-      <h3>У вас пока нет поездок</h3>
-      <p>Создайте свою первую поездку!</p>
+      <div class="empty-icon">✈️</div>
+      <h3>
+        {{
+          availabilityType === "my"
+            ? "У вас пока нет поездок"
+            : "Нет общих поездок"
+        }}
+      </h3>
+      <p>
+        {{
+          availabilityType === "my"
+            ? "Создайте свою первую поездку!"
+            : "Пока нет ни одной общей поездки"
+        }}
+      </p>
     </div>
 
     <div v-else :class="viewType === 'grid' ? 'trips-grid' : 'trips-list'">
@@ -110,6 +158,7 @@ onMounted(() => {
         :key="trip.id"
         :trip="trip"
         :view-type="viewType"
+        :type="availabilityType"
         @delete="openDeleteModal"
       />
     </div>
@@ -133,16 +182,34 @@ onMounted(() => {
 <style scoped lang="scss">
 .home {
   max-width: 1200px;
-  height: 100vh;
+  min-height: 100vh;
   margin: 0 auto;
-  padding-top: 16px !important;
-  padding: 12px;
+  padding: 16px 12px;
+}
+
+.title-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.mobile-availability {
+  display: block;
+}
+
+.desktop-availability {
+  display: none;
 }
 
 .header {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
   margin-bottom: 20px;
 }
 
@@ -151,13 +218,6 @@ onMounted(() => {
   align-items: center;
   gap: 12px;
   width: 100%;
-}
-
-.header h1 {
-  margin: 0;
-  font-size: 24px;
-  font-weight: 700;
-  color: #111827;
 }
 
 .create-btn {
@@ -171,6 +231,50 @@ onMounted(() => {
   cursor: pointer;
   white-space: nowrap;
   flex: 1;
+  transition: all 0.2s ease;
+
+  &:hover {
+    opacity: 0.9;
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.switching-loader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  width: 100%;
+  min-height: 300px;
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  width: 100%;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(59, 130, 246, 0.1);
+  border-top: 3px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .trips-grid {
@@ -209,67 +313,43 @@ onMounted(() => {
   color: #6b7280;
 }
 
-.empty-state button {
-  padding: 12px 24px;
-  background: $color-primary;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  cursor: pointer;
-}
-
-.loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-
-  .spinner {
-    width: 40px;
-    height: 40px;
-    border: 3px solid rgba(59, 130, 246, 0.1);
-    border-top: 3px solid #3b82f6;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
-}
-
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
 @media (min-width: 640px) {
   .home {
     padding: 24px;
-    padding-top: 48px !important;
+    padding-top: 48px;
+  }
+
+  .title-section {
+    margin-bottom: 0px;
+  }
+
+  .title {
+    font-size: 28px;
+  }
+
+  .mobile-availability {
+    display: none;
+  }
+
+  .desktop-availability {
+    display: block;
   }
 
   .header {
-    flex-direction: row;
+    display: flex;
     justify-content: space-between;
-    align-items: center;
-    gap: 24px;
-    margin-bottom: 32px;
+    align-items: end;
+    margin-bottom: 24px;
   }
 
   .header-actions {
     width: auto;
+    align-items: end;
     gap: 16px;
   }
 
-  .header h1 {
-    font-size: 28px;
-  }
-
   .create-btn {
-    padding: 12px 24px;
+    padding: 15px 24px;
     flex: none;
   }
 
@@ -293,16 +373,16 @@ onMounted(() => {
   .empty-state h3 {
     font-size: 20px;
   }
-
-  .loading {
-    padding: 60px;
-  }
 }
 
 @media (min-width: 768px) {
   .trips-grid {
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 24px;
+  }
+
+  .title {
+    font-size: 32px;
   }
 }
 </style>

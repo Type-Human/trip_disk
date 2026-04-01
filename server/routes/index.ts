@@ -9,6 +9,7 @@ import { createFolderRoutes } from './folders'
 import { createPhotoRoutes } from './photos'
 import { createTripRoutes } from './trips'
 
+
 export function createRoutes(
   tripService: TripService,
   photoService: PhotoService,
@@ -23,8 +24,6 @@ export function createRoutes(
   app.get('/uploads/*', async (c) => {
     const path = c.req.path.replace('/uploads/', '')
     const filepath = join(fileStorage.uploadsDirectory, path)
-    
-
 
     if (!existsSync(filepath)) {
       return c.json({ error: 'Файл не найден' }, 404)

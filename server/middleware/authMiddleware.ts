@@ -1,7 +1,13 @@
 import { createMiddleware } from 'hono/factory'
-import { AuthService } from '../services/authService'
+import { AuthService, User } from 'services/authService'
 
 const authService = new AuthService()
+
+declare module 'hono' {
+  interface ContextVariableMap {
+    user: User
+  }
+}
 
 export const authMiddleware = createMiddleware(async (c, next) => {
   const token = c.req.header('Authorization')?.replace('Bearer ', '')

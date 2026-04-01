@@ -8,7 +8,7 @@ import DeleteModal from "@/components/modals/DeleteModal.vue";
 import Icon from "@/components/ui/Icon.vue";
 
 const router = useRouter();
-const { user, handleLogout } = useAuth();
+const { user } = useAuth();
 
 const isEditing = ref(false);
 const editForm = ref({
@@ -26,7 +26,7 @@ const successMessage = ref("");
 const errorMessage = ref("");
 const showDeleteModal = ref(false);
 const isloadingDelete = ref(false);
-const tripId = ref('')
+const tripId = ref("");
 
 onMounted(async () => {
   if (user) {
@@ -39,7 +39,7 @@ onMounted(async () => {
 const loadUserTrips = async () => {
   loadingTrips.value = true;
   try {
-    const allTrips = await tripApi.getAll();
+    const allTrips = await tripApi.getTripsUser();
     trips.value = allTrips;
   } catch (error) {
     console.error("Ошибка загрузки поездок:", error);
@@ -52,23 +52,34 @@ const goToTrip = (tripId: string) => {
   router.push(`/trips/${tripId}`);
 };
 
-
-
 const toggleEdit = () => {
   isEditing.value = !isEditing.value;
   successMessage.value = "";
   errorMessage.value = "";
 };
 
-const openDeleteModal = (id:string) => {
+const openDeleteModal = (id: string) => {
   showDeleteModal.value = true;
-  tripId.value = id
+  tripId.value = id;
 };
 
 const closeDeleteModal = () => {
-  if (!isloadingDelete.value ||  !tripId.value) {
+  if (!isloadingDelete.value || !tripId.value) {
     showDeleteModal.value = false;
-    tripId.value = ''
+    tripId.value = "";
+  }
+};
+
+const toggleAvailability = async (id: string, current: boolean) => {
+  try {
+    const newStatus = !current;
+    tripApi.updateTripAvailability(id, newStatus);
+    const trip = trips.value.find((t) => t.id === id);
+    if (trip) {
+      trip.isPublic = newStatus;
+    }
+  } catch (error) {
+    console.error(error);
   }
 };
 
@@ -78,16 +89,16 @@ const deleteTrip = async () => {
     await tripApi.delete(tripId.value);
     trips.value = trips.value.filter((t) => t.id !== tripId.value);
     isloadingDelete.value = false;
-    showDeleteModal.value = false
-    tripId.value = ''
+    showDeleteModal.value = false;
+    tripId.value = "";
   } catch (error) {
     errorMessage.value = "Ошибка при удалении поездки";
     isloadingDelete.value = false;
-    tripId.value = ''
+    tripId.value = "";
   } finally {
     isloadingDelete.value = false;
-    showDeleteModal.value = false
-    tripId.value = ''
+    showDeleteModal.value = false;
+    tripId.value = "";
   }
 };
 
@@ -150,9 +161,7 @@ const formatDate = (date?: string) => {
         <div class="Layout-main">
           <div class="trips-section">
             <div class="trips-header">
-              <h2 class="section-title">
-                Поездки
-              </h2>
+              <h2 class="section-title">Поездки</h2>
             </div>
 
             <div v-if="loadingTrips" class="loading-trips">
@@ -178,11 +187,33 @@ const formatDate = (date?: string) => {
                     :alt="trip.title"
                   />
                   <div v-else class="trip-cover-placeholder">
-                    <Icon size="32" stroke-color="rgb(31, 41, 55)" stroke-width="1.5">
-                      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
+                    <Icon
+                      size="32"
+                      stroke-color="rgb(31, 41, 55)"
+                      stroke-width="1.5"
+                    >
+                      <path
+                        d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"
+                      />
                       <circle cx="12" cy="9" r="3" />
                     </Icon>
                   </div>
+                  <button
+                    class="public-toggle"
+                    @click.stop="toggleAvailability(trip.id, trip.isPublic)"
+                    :class="{ public: trip.isPublic, closed: !trip.isPublic }"
+                  >
+                    <Icon size="14" color="#2d9c5c" v-if="trip.isPublic">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </Icon>
+                    <Icon size="14" color="#6a737d" v-else>
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                      <circle cx="12" cy="12" r="3" />
+                      <line x1="2" y1="2" x2="22" y2="22" />
+                    </Icon>
+                  </button>
+
                   <button
                     class="delete-trip-btn"
                     @click.stop="openDeleteModal(trip.id)"
@@ -221,7 +252,11 @@ const formatDate = (date?: string) => {
       </div>
     </div>
   </div>
-  <DeleteModal v-if="showDeleteModal" @close="closeDeleteModal" @confirm="deleteTrip" />
+  <DeleteModal
+    v-if="showDeleteModal"
+    @close="closeDeleteModal"
+    @confirm="deleteTrip"
+  />
 </template>
 
 <style scoped lang="scss">
@@ -462,7 +497,7 @@ const formatDate = (date?: string) => {
     justify-content: center;
     height: 100%;
     color: #d0d7de;
-     background: linear-gradient(135deg, #f0f4ff 0%, #e6f0ff 100%);
+    background: linear-gradient(135deg, #f0f4ff 0%, #e6f0ff 100%);
   }
 
   .delete-trip-btn {
@@ -480,6 +515,33 @@ const formatDate = (date?: string) => {
 
     &:hover {
       background: #dc3545;
+      transform: scale(1.05);
+    }
+  }
+
+  .public-toggle {
+    position: absolute;
+    top: 12px;
+    right: 40px;
+    background: rgba(0, 0, 0, 0.6);
+    border: none;
+    border-radius: 4px;
+    display: flex;
+    padding: 4px;
+    cursor: pointer;
+    color: white;
+    transition: all 0.2s;
+
+    &:hover {
+      transform: scale(1.05);
+    }
+
+    &.public:hover {
+      background: rgba(106, 115, 125, 0.9);
+    }
+
+    &.closed:hover {
+      background: rgba(45, 156, 92, 0.9);
     }
   }
 }

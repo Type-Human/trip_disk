@@ -1,6 +1,15 @@
 const API_URL = (import.meta as any).env?.VITE_API_URL || '/api'
 
 
+const originalConsoleError = console.error
+console.error = (...args: any[]) => {
+
+  if (args[0] && typeof args[0] === 'string' && args[0].includes('401')) {
+    return
+  }
+  originalConsoleError.apply(console, args)
+}
+
 function getAuthToken(): string | null {
   return localStorage.getItem('auth_token')
 }
@@ -16,7 +25,6 @@ async function request<T>(
     const headers: Record<string, string> = {
       ...(requestConfig.headers as Record<string, string> || {}),
     }
-
 
     const token = getAuthToken()
     if (token && !headers['Authorization']) {
@@ -55,7 +63,7 @@ async function request<T>(
       catch {
         errorMessage = `HTTP ${response.status}: ${response.statusText}`
       }
-      console.error(`API Error ${response.status}:`, errorMessage)
+      
       throw new Error(errorMessage)
     }
 

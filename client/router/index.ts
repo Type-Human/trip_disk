@@ -25,18 +25,17 @@ const routes = [
     component: RegisterPage,
     meta: { guestOnly: true },
   },
-
   {
     path: "/trips/:id",
     name: "trip-details",
     component: TripDetailsPage,
     meta: { requiresAuth: true },
   },
-   {
+  {
     path: "/profile",
     name: "profile",
     component: ProfilePage,
-     meta: { requiresAuth: false },
+    meta: { requiresAuth: false },
   },
 ];
 
@@ -48,14 +47,14 @@ const router = createRouter({
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
   
+
+  await authStore.init()
+  
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     next('/login')
-  }
-
-  else if (to.meta.guestOnly && authStore.isAuthenticated) {
+  } else if (to.meta.guestOnly && authStore.isAuthenticated) {
     next('/')
-  }
-  else {
+  } else {
     next()
   }
 })

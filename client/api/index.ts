@@ -6,8 +6,16 @@ export const tripApi = {
     return realApi.get<Trip[]>("/trips");
   },
 
+   async getTripsUser(): Promise<Trip[]> {
+    return realApi.get<Trip[]>("/trips/user");
+  },
+
   async getById(id: string): Promise<Trip> {
     return realApi.get<Trip>(`/trips/${id}`);
+  },
+
+   async updateTripAvailability(id: string, isPublic: boolean): Promise<Trip> {
+    return realApi.patch<Trip>(`/trips/${id}/public`, { isPublic });
   },
 
   async create(data: CreateTripDto & { coverImage?: File }): Promise<Trip> {

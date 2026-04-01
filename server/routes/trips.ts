@@ -4,6 +4,7 @@ import type { PhotoService } from '../services/photoService'
 import type { TripService } from '../services/tripService'
 import { Hono } from 'hono'
 import { fileStorage } from '../storage'
+import { authMiddleware } from '../middleware/authMiddleware'
 
 export function createTripRoutes(
   tripService: TripService,
@@ -13,8 +14,20 @@ export function createTripRoutes(
   const app = new Hono()
 
   app.get('/', async (c) => {
-    const trips = await tripService.getAll()
+    const trips = await tripService.getAllPublic()
     return c.json(trips)
+  })
+
+  app.get('/user', authMiddleware, async (c) => {
+    const user = c.get('user')
+    const trips = await tripService.getUserTrips(user.id)
+    return c.json(trips)
+  })
+
+  app.get('/:id/photos', async (c) => {
+    const id = c.req.param('id')
+    const photos = await photoService.getByTripId(id)
+    return c.json(photos)
   })
 
   app.get('/:id', async (c) => {
@@ -26,8 +39,15 @@ export function createTripRoutes(
     return c.json(trip)
   })
 
-  app.post('/', async (c) => {
+  app.get('/:id/folders', async (c) => {
+    const id = c.req.param('id')
+    const folders = await folderService.getByTripId(id)
+    return c.json(folders)
+  })
+
+  app.post('/', authMiddleware, async (c) => {
     try {
+      const user = c.get('user')
       let tripData: CreateTripDto
       let coverImageUrl: string | undefined
 
@@ -52,7 +72,7 @@ export function createTripRoutes(
         tripData = await c.req.json<CreateTripDto>()
       }
 
-      const trip = await tripService.create(tripData, coverImageUrl)
+      const trip = await tripService.create(tripData, user.id, coverImageUrl)
       return c.json(trip, 201)
     }
     catch (error) {
@@ -61,42 +81,43 @@ export function createTripRoutes(
     }
   })
 
-  app.delete('/:id', async (c) => {
+  app.patch('/:id/public', authMiddleware, async (c) => {
     try {
+      const user = c.get('user')
       const id = c.req.param('id')
-
-      const trip = await tripService.getById(id)
-      if (!trip) {
+      const { isPublic } = await c.req.json()
+      
+      const updated = await tripService.setPublic(id, user.id, isPublic)
+      
+      if (!updated) {
         return c.json({ error: 'Поездка не найдена' }, 404)
       }
+      
+      return c.json({ success: true, isPublic })
+    } catch (error) {
+      console.error('Ошибка изменения видимости:', error)
+      return c.json({ error: 'Ошибка изменения видимости' }, 500)
+    }
+  })
 
-      await photoService.deleteByTripId(id)
+  app.delete('/:id', authMiddleware, async (c) => {
+    try {
+      const user = c.get('user')
+      const id = c.req.param('id')
 
-      const deleted = await tripService.delete(id)
+      const deleted = await tripService.delete(id, user.id)
 
       if (deleted) {
         return c.json({ message: 'Поездка удалена' }, 200)
       }
       else {
-        return c.json({ error: 'Ошибка удаления поездки' }, 500)
+        return c.json({ error: 'Поездка не найдена' }, 404)
       }
     }
     catch (error) {
       console.error('Ошибка удаления поездки:', error)
       return c.json({ error: 'Ошибка удаления поездки' }, 500)
     }
-  })
-
-  app.get('/:id/photos', async (c) => {
-    const tripId = c.req.param('id')
-    const photos = await photoService.getByTripId(tripId)
-    return c.json(photos)
-  })
-
-  app.get('/:id/folders', async (c) => {
-    const tripId = c.req.param('id')
-    const folders = await folderService.getByTripId(tripId)
-    return c.json(folders)
   })
 
   return app

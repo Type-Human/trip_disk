@@ -7,6 +7,9 @@ export interface Trip {
   coverImage?: string
   createdAt: string
   updatedAt: string
+  isPublic: boolean 
+  userId: number
+
 }
 
 export interface Photo {
@@ -17,7 +20,8 @@ export interface Photo {
   size: number
   uploadedAt: string
   folderId?: string
-  thumbnailUrl?: string | null; 
+  thumbnailUrl?: string | null;
+
 }
 
 export interface Folder {

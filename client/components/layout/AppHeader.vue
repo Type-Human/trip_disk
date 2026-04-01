@@ -172,7 +172,7 @@ const goToLogin = () => {
   border: none;
   cursor: pointer;
   padding: 6px 12px;
-  padding-right: 0px;
+  padding-right: 12px;
   border-radius: 8px;
   color: #666;
   font-size: 14px;
