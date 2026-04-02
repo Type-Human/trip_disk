@@ -8,6 +8,7 @@ import Icon from '../ui/Icon.vue'
 const props = defineProps<{
   trip: Trip
   viewType?: 'grid' | 'list'
+  showDeleteButton?: boolean 
 }>()
 const emit = defineEmits<{
   delete: [trip: Trip]
@@ -67,6 +68,7 @@ async function loadPreviewPhoto() {
   try {
     isLoading.value = true
     const photos = await tripApi.getPhotosByTripId(props.trip.id)
+    
     if (photos.length > 0) {
       previewPhoto.value = photos[0]
     }
@@ -80,6 +82,7 @@ async function loadPreviewPhoto() {
 }
 
 onMounted(() => {
+
   loadPreviewPhoto()
 })
 </script>
@@ -122,10 +125,10 @@ onMounted(() => {
         </div>
       </div>
     </article>
-    <div class="date-badge">
+    <div class="date-badge" :class="{my: !showDeleteButton}">
           {{ formatDate(trip.date) }}
         </div>
-    <button type="button" class="delete-badge" title="Удалить путешествие">
+    <button v-if="showDeleteButton" type="button" class="delete-badge"  title="Удалить путешествие">
       <Icon size="16" stroke="#ef4444">
         <path data-v-943d8c11="" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
       </Icon>
@@ -222,6 +225,10 @@ onMounted(() => {
   font-weight: $font-weight-medium;
   color: $color-gray-darker;
   box-shadow: $shadow-sm;
+
+  &.my{
+     right: 16px
+  }
   
 }
 

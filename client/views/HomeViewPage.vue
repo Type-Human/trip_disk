@@ -26,14 +26,13 @@ async function fetchTrips(showLoader: boolean = true) {
     } else {
       isSwitching.value = true;
     }
-    
+
     if (availabilityType.value === "my") {
       trips.value = await tripApi.getTripsUser();
     } else {
       trips.value = await tripApi.getAll();
     }
   } catch (error: any) {
-
     trips.value = [];
   } finally {
     isLoading.value = false;
@@ -158,7 +157,7 @@ onMounted(() => {
         :key="trip.id"
         :trip="trip"
         :view-type="viewType"
-        :type="availabilityType"
+        :show-delete-button="availabilityType === 'my'"
         @delete="openDeleteModal"
       />
     </div>
